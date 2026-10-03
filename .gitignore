@@ -1,9 +1,9 @@
-node_modules/
-dist/
-.next/
 .env
 .env.*
-!.env.example
+ops/.deploy.env
+config/config.local.php
+public/uploads/*
+!public/uploads/.htaccess
+!public/uploads/.gitkeep
+storage/
 *.log
-coverage/
-.DS_Store

@@ -1,25 +1,22 @@
 # Recherche et décisions — ERP Pressing
 
-| Sujet | Décision | Alternatives écartées | Statut |
-|---|---|---|---|
-| Architecture | Monolithe modulaire + worker | Microservices (trop lourd), ERP du marché (Odoo : perd la finesse vêtement/QR) | Proposé |
-| Terminal poste | PWA Android/Chrome | App native (publication, maintenance double) | Proposé |
-| Scan | Caméra (BarcodeDetector / jsQR) + douchette Bluetooth HID | Scanner dédié obligatoire | Proposé |
-| Étiquette | QR contenant le code court `PR-…` (pas d'URL) ; impression thermique ZPL/ESC-POS | QR avec URL signée (dépend du réseau) | Proposé |
-| Hors-ligne | File locale (IndexedDB) pour la réception, blocs d'ID réservés | Offline total pour toute l'app (coût) | Proposé |
-| Audit | Table AO + triggers + chaîne de hachage | Event sourcing complet (surdimensionné) | Proposé |
-| Multi-agences | Base unique + `agency_id` + RLS | Une base par agence (consolidation lourde) | Proposé |
-| Notifications | Outbox + BullMQ, fournisseur SMS local + WhatsApp Business API + SMTP | Appels directs dans la transaction | Proposé |
-| Mobile Money | Via passerelle mutualisée `apisungku` | Intégration directe Orange/MTN par projet | À valider |
-| KPI | Vues SQL + snapshots | Entrepôt séparé (non justifié en v1) | Proposé |
-| Temps réel | SSE | WebSocket | Proposé |
-| Numérotation facture | Séquence continue par agence/année, verrouillée à l'émission | Numéro libre | À valider (conformité) |
+| Sujet | Décision | Raison |
+|---|---|---|
+| Stack | **Conserver PHP 8.1 + MySQL 8** | Code existant fonctionnel, hébergement Camoo, cohérent avec GFC 2026 |
+| Tâches asynchrones | cron + tables de file (`messages`, alertes) | Pas de worker sur mutualisé |
+| Audit | Table append-only (triggers MySQL `BEFORE UPDATE/DELETE` → SIGNAL) + chaîne de hachage | Pas besoin d'event sourcing |
+| QR | Bibliothèque JS locale (`public/assets/vendor/`) | Impression sans dépendre d'un CDN |
+| Hors-ligne | Service worker + file locale pour la réception uniquement | Réseau instable, coût maîtrisé |
+| Mobile Money | Passerelle `apisungku` (pawaPay) ; Orange et MTN seulement | Wave/Moov hors marché camerounais |
+| Notifications | Interface `Gateway` (existe : `LogGateway`) → adaptateurs SMS/WhatsApp/SMTP | Déjà prévu dans `bin/send-messages.php` |
+| Temps réel | Interrogation périodique (30 s) | Pas de SSE fiable sur mutualisé |
+| Fuseau | `Africa/Douala` (UTC+1) | Le code utilise `Africa/Abidjan` (UTC+0) : décalage d'une heure |
+| Migrations | Fichiers numérotés + table `schema_migrations` | `schema.sql` actuel fait `DROP TABLE` : dangereux en production |
 
 ## Risques
-
-1. **Adoption terrain** : le scan à chaque étape ne tient que si l'écran est ≤ 2 actions. Prévoir un pilote d'une agence avant extension.
-2. **Réseau instable** : mitigé par hors-ligne réception ; la production reste en ligne en v1.
-3. **Qualité des étiquettes** : humidité, chaleur, lavage ⇒ tester support et adhésif réels dès la phase 3.
-4. **Fournisseurs de messages** : coûts, agrément WhatsApp, délais ; prévoir SMS en repli.
-5. **Conformité** : facturation et données personnelles à valider avec un référent juridique (hypothèses non vérifiées).
-6. **Périmètre** : 10 modules ; discipline MVP = phases 0–6.
+1. **Perte de données en production** : `database/schema.sql` supprime toutes les tables et `bin/install.php --demo` insère des données de démonstration. Ne jamais l'exécuter sur la base de l'hébergeur une fois utilisée.
+2. **Données de démonstration ivoiriennes** (Abidjan, +225, Wave, Moov) : à remplacer.
+3. **Comptes de démo** avec mot de passe public `pressing2026` : à supprimer avant toute mise en ligne.
+4. **Hébergement mutualisé** : version de PHP, limites, cron et `mod_rewrite` à vérifier.
+5. **Identifiants communiqués dans une conversation** : à considérer comme exposés ; changer les mots de passe FTP et base après mise en place.
+6. Conformité (TVA, données personnelles) : hypothèses non vérifiées.

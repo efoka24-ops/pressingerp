@@ -1,0 +1,5 @@
+# Aucune exécution de script dans le dossier des photos
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>
+php_flag engine off

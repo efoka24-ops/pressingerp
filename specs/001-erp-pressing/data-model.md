@@ -1,3 +1,5 @@
+> Remplacé par `plan.md` : le schéma réel est `database/schema.sql` (MySQL). Ce modèle reste une cible conceptuelle.
+
 # Modèle de données — ERP Pressing
 
 Toutes les tables métier portent `agency_id`, `created_at`, `created_by`. Les tables marquées **AO** sont append-only (pas de UPDATE/DELETE, droits DB retirés). Montants en entiers FCFA.

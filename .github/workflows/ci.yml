@@ -1,22 +1,10 @@
 name: CI
 on: [push, pull_request]
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env: { POSTGRES_PASSWORD: pressing, POSTGRES_USER: pressing, POSTGRES_DB: pressing }
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U pressing" --health-interval 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm install
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
-      - run: npm audit --audit-level=high
-        continue-on-error: true
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.1', extensions: pdo_mysql, mbstring, fileinfo }
+      - run: find app bin config public -name '*.php' -print0 | xargs -0 -n1 php -l
