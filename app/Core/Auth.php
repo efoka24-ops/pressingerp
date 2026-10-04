@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Domain\Role;
+use App\Services\Audit;
 
 final class Auth
 {
@@ -15,6 +16,7 @@ final class Auth
         $hash = $u ? ($pin ? $u['pin_hash'] : $u['password_hash']) : null;
         if (!$hash || !password_verify($secret, $hash)) {
             usleep(400_000); // ralentit le bourrage d'identifiants
+            Audit::log('auth.failed', 'users', $u ? (int)$u['id'] : null, ['login' => mb_substr($login, 0, 60), 'mode' => $pin ? 'pin' : 'password']);
             return false;
         }
         if (password_needs_rehash($hash, PASSWORD_DEFAULT)) {
@@ -57,15 +59,30 @@ final class Auth
 
     public static function isManager(): bool
     {
-        return in_array(self::role(), [Role::Direction, Role::Manager], true);
+        return in_array(self::role(), [Role::Admin, Role::Direction, Role::Manager], true);
     }
 
-    public static function can(string $module): bool
+    /** Agence imposée au rôle courant (0 = groupe consolidé : le rôle voit toutes les agences). */
+    public static function scopedAgencyId(): int
     {
-        return self::role()?->can($module) ?? false;
+        return self::role()?->agencyScoped() ? self::agencyId() : 0;
     }
 
-    public static function authorize(string $perm): void
+    /** Remplace l'utilisateur courant (tests uniquement). */
+    public static function actAs(?array $user): void
+    {
+        self::$user = $user;
+        $_SESSION['uid'] = $user['id'] ?? null;
+        $_SESSION['agency_id'] = $user['agency_id'] ?? null;
+    }
+
+    public static function can(string $module, string $action = 'read'): bool
+    {
+        return self::role()?->can($module, $action) ?? false;
+    }
+
+    /** $perm : « auth », « module » (action déduite de la méthode HTTP) ou « module:action ». */
+    public static function authorize(string $perm, string $method = 'GET', bool $hasParams = false): void
     {
         if (!self::user()) {
             if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
@@ -73,8 +90,14 @@ final class Auth
             }
             redirect('/login');
         }
-        if ($perm !== 'auth' && !self::can($perm)) {
-            throw new HttpException(403, 'Accès refusé à ce module pour votre profil.');
+        if ($perm === 'auth') {
+            return;
+        }
+        [$module, $action] = str_contains($perm, ':') ? explode(':', $perm, 2) : [$perm, null];
+        $action ??= $method === 'GET' ? 'read' : ($hasParams ? 'update' : 'create');
+        if (!self::can($module, $action)) {
+            Audit::log('access.denied', 'routes', null, ['module' => $module, 'action' => $action, 'uri' => mb_substr((string)($_SERVER['REQUEST_URI'] ?? ''), 0, 120)]);
+            throw new HttpException(403, "Accès refusé : votre profil n'a pas le droit « $action » sur ce module.");
         }
     }
 

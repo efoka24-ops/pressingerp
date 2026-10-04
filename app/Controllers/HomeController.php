@@ -51,7 +51,7 @@ final class HomeController extends Controller
 
     public function cockpit(): void
     {
-        $ag = $this->int('agence');
+        $ag = Auth::scopedAgencyId() ?: $this->int('agence');
         $this->view('home/cockpit', (new DashboardService($ag))->all() + [
             'title'    => 'Cockpit direction',
             'ag'       => $ag,

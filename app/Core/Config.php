@@ -12,6 +12,12 @@ final class Config
         self::$items = $items;
     }
 
+    /** @return array<string,mixed> toute la configuration (tests) */
+    public static function all(): array
+    {
+        return self::$items;
+    }
+
     /** Accès en notation pointée : Config::get('db.dsn') */
     public static function get(string $key, mixed $default = null): mixed
     {

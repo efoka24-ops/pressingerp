@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\BIController;
 use App\Controllers\CashController;
@@ -50,7 +51,7 @@ $r->post('/commandes/{id}/paiement', [OrderController::class, 'pay'], 'orders');
 $r->post('/commandes/{id}/paiement-mobile', [PaymentController::class, 'initiate'], 'orders');
 $r->webhook('/payments/webhook/sungku', [PaymentController::class, 'sungkuWebhook']);
 $r->post('/commandes/{id}/retrait', [OrderController::class, 'pickup'], 'orders');
-$r->post('/commandes/{id}/annuler', [OrderController::class, 'cancel'], 'orders');
+$r->post('/commandes/{id}/annuler', [OrderController::class, 'cancel'], 'orders:validate');
 
 // 03 Traçabilité · 04 Production (scan atelier)
 $r->get('/tracabilite', [TraceController::class, 'index'], 'trace');
@@ -61,7 +62,7 @@ $r->post('/pieces/{id}/action', [GarmentController::class, 'action'], 'productio
 // 05 Qualité
 $r->get('/qualite', [QualityController::class, 'index'], 'quality');
 $r->get('/qualite/controle/{id}', [QualityController::class, 'check'], 'quality');
-$r->post('/qualite/controle/{id}', [QualityController::class, 'submit'], 'quality');
+$r->post('/qualite/controle/{id}', [QualityController::class, 'submit'], 'quality:validate');
 $r->post('/qualite/reclamations', [QualityController::class, 'storeComplaint'], 'quality');
 $r->post('/qualite/reclamations/{id}', [QualityController::class, 'updateComplaint'], 'quality');
 
@@ -75,7 +76,7 @@ $r->post('/caisse/depenses', [CashController::class, 'expense'], 'cash');
 // 07 Commercial & Recouvrement
 $r->get('/commercial', [CommercialController::class, 'contracts'], 'commercial');
 $r->post('/commercial/contrats', [CommercialController::class, 'storeContract'], 'commercial');
-$r->post('/commercial/contrats/{id}/resilier', [CommercialController::class, 'endContract'], 'commercial');
+$r->post('/commercial/contrats/{id}/resilier', [CommercialController::class, 'endContract'], 'commercial:validate');
 $r->get('/commercial/factures', [CommercialController::class, 'invoices'], 'commercial');
 $r->post('/commercial/factures/generer', [CommercialController::class, 'generate'], 'commercial');
 $r->get('/commercial/factures/{id}', [CommercialController::class, 'invoice'], 'commercial');
@@ -86,7 +87,7 @@ $r->post('/recouvrement/relance', [CommercialController::class, 'remind'], 'comm
 // 08 Marketing & Fidélité
 $r->get('/marketing', [MarketingController::class, 'index'], 'marketing');
 $r->post('/marketing/campagnes', [MarketingController::class, 'store'], 'marketing');
-$r->post('/marketing/campagnes/{id}/envoyer', [MarketingController::class, 'send'], 'marketing');
+$r->post('/marketing/campagnes/{id}/envoyer', [MarketingController::class, 'send'], 'marketing:validate');
 
 // 09 Stocks
 $r->get('/stocks', [StockController::class, 'index'], 'stock');
@@ -104,5 +105,19 @@ $r->get('/suivi', [TrackingController::class, 'lookup']);
 $r->post('/suivi', [TrackingController::class, 'find']);
 $r->get('/suivi/{token}', [TrackingController::class, 'show']);
 $r->post('/suivi/{token}/livraison', [TrackingController::class, 'delivery']);
+
+// Administration (utilisateurs, agences, paramètres, audit, sauvegardes)
+$r->get('/admin', [AdminController::class, 'index'], 'admin');
+$r->get('/admin/utilisateurs', [AdminController::class, 'users'], 'admin');
+$r->post('/admin/utilisateurs', [AdminController::class, 'createUser'], 'admin:create');
+$r->post('/admin/utilisateurs/{id}', [AdminController::class, 'updateUser'], 'admin:update');
+$r->post('/admin/utilisateurs/{id}/mot-de-passe', [AdminController::class, 'resetPassword'], 'admin:update');
+$r->get('/admin/agences', [AdminController::class, 'agencies'], 'admin');
+$r->post('/admin/agences', [AdminController::class, 'saveAgency'], 'admin:create');
+$r->post('/admin/agences/{id}', [AdminController::class, 'saveAgency'], 'admin:update');
+$r->get('/admin/parametres', [AdminController::class, 'settings'], 'admin');
+$r->post('/admin/parametres', [AdminController::class, 'saveSetting'], 'admin:update');
+$r->get('/admin/audit', [AdminController::class, 'audit'], 'admin');
+$r->get('/admin/sauvegardes', [AdminController::class, 'backups'], 'admin');
 
 return $r;

@@ -58,6 +58,8 @@ final class CommercialController extends Controller
             'active'          => 1,
         ]);
         if ($limit = $this->int('credit_limit')) {
+            $before = Database::one('SELECT credit_limit, payment_terms_days FROM clients WHERE id = ?', [(int)$req['client_id']]);
+            Audit::log('client.credit_limit', 'clients', (int)$req['client_id'], [], $before, ['credit_limit' => $limit, 'payment_terms_days' => max(0, $this->int('payment_terms_days', 30))], 'Contrat n° ' . $id);
             Database::update('clients', ['credit_limit' => $limit, 'payment_terms_days' => max(0, $this->int('payment_terms_days', 30))], 'id = :id', ['id' => (int)$req['client_id']]);
         }
         Audit::log('contract.create', 'contracts', $id);

@@ -1,0 +1,3 @@
+-- Les triggers « ajout seul » exigent le privilège SUPER si le journal binaire est actif (erreur 1419 sur Camoo).
+-- Ils sont donc appliqués en option par Migrator::applyOptionalTriggers() (database/optional/) et ne bloquent plus la migration.
+-- Sans eux, la protection repose sur le code (aucun UPDATE/DELETE, vérifié par la recette) et sur la chaîne de hachage signée.

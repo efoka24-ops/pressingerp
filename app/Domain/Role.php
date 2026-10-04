@@ -5,50 +5,91 @@ namespace App\Domain;
 
 enum Role: string
 {
-    case Direction  = 'direction';
-    case Manager    = 'manager';
-    case Comptoir   = 'comptoir';
-    case Atelier    = 'atelier';
-    case Qualite    = 'qualite';
-    case Commercial = 'commercial';
+    case Admin       = 'admin';
+    case Direction   = 'direction';
+    case Manager     = 'manager';
+    case Comptoir    = 'comptoir';
+    case Atelier     = 'atelier';
+    case Superviseur = 'superviseur';
+    case Qualite     = 'qualite';
+    case Livreur     = 'livreur';
+    case Commercial  = 'commercial';
+    case Marketing   = 'marketing';
+
+    /** Actions : R lecture · C création · U modification · V validation · D suppression */
+    public const ACTIONS = ['read' => 'R', 'create' => 'C', 'update' => 'U', 'validate' => 'V', 'delete' => 'D'];
 
     public function label(): string
     {
         return match ($this) {
-            self::Direction  => 'Direction',
-            self::Manager    => 'Responsable d\'agence',
-            self::Comptoir   => 'Agent de comptoir',
-            self::Atelier    => 'Opérateur atelier',
-            self::Qualite    => 'Contrôle qualité',
-            self::Commercial => 'Commercial',
+            self::Admin       => 'Administrateur système',
+            self::Direction   => 'Direction',
+            self::Manager     => 'Responsable d\'agence',
+            self::Comptoir    => 'Agent de comptoir',
+            self::Atelier     => 'Opérateur atelier',
+            self::Superviseur => 'Superviseur production',
+            self::Qualite     => 'Contrôle qualité',
+            self::Livreur     => 'Livreur',
+            self::Commercial  => 'Commercial / recouvrement',
+            self::Marketing   => 'Responsable marketing',
         };
     }
 
-    /** @return list<string> */
+    /**
+     * Droits par module (lettres de self::ACTIONS). « Limité » = sous-ensemble de lettres.
+     * @return array<string,string>
+     */
+    public function rights(): array
+    {
+        $business = array_fill_keys(['cockpit', 'counter', 'clients', 'orders', 'trace', 'production', 'quality', 'cash', 'commercial', 'marketing', 'stock', 'bi'], 'RCUVD');
+        return match ($this) {
+            self::Admin       => $business + ['admin' => 'RCUVD'],
+            self::Direction   => array_map(fn() => 'RCUV', $business) + ['admin' => 'R'],
+            self::Manager     => array_map(fn() => 'RCUV', $business),
+            self::Comptoir    => ['counter' => 'R', 'clients' => 'RCU', 'orders' => 'RCU', 'trace' => 'R', 'cash' => 'RCU'],
+            self::Atelier     => ['production' => 'RU', 'trace' => 'R'],
+            self::Superviseur => ['production' => 'RCUV', 'trace' => 'R', 'quality' => 'R', 'orders' => 'R'],
+            self::Qualite     => ['quality' => 'RCUV', 'production' => 'R', 'trace' => 'R'],
+            self::Livreur     => ['orders' => 'R', 'trace' => 'R'],
+            self::Commercial  => ['clients' => 'RCU', 'commercial' => 'RCUV', 'marketing' => 'R', 'bi' => 'R'],
+            self::Marketing   => ['clients' => 'R', 'marketing' => 'RCUV', 'bi' => 'R'],
+        };
+    }
+
+    /** @return list<string> modules accessibles en lecture */
     public function modules(): array
     {
-        return match ($this) {
-            self::Direction, self::Manager => array_keys(Module::ALL),
-            self::Comptoir   => ['counter', 'clients', 'orders', 'trace', 'cash'],
-            self::Atelier    => ['production', 'trace'],
-            self::Qualite    => ['quality', 'production', 'trace'],
-            self::Commercial => ['clients', 'commercial', 'marketing', 'bi'],
-        };
+        return array_keys(array_filter($this->rights(), fn($r) => str_contains($r, 'R')));
     }
 
-    public function can(string $module): bool
+    public function can(string $module, string $action = 'read'): bool
     {
-        return in_array($module, $this->modules(), true);
+        $letter = self::ACTIONS[$action] ?? null;
+        return $letter !== null && str_contains($this->rights()[$module] ?? '', $letter);
+    }
+
+    /** Rôles limités aux données de leur agence ; les autres voient le groupe (l'atelier central traite toutes les agences). */
+    public function agencyScoped(): bool
+    {
+        return in_array($this, [self::Comptoir, self::Manager], true);
+    }
+
+    /** Rôles autorisés à choisir l'agence de travail à la connexion. */
+    public function canSwitchAgency(): bool
+    {
+        return in_array($this, [self::Admin, self::Direction], true);
     }
 
     public function home(): string
     {
         return match ($this) {
-            self::Direction, self::Manager => '/cockpit',
-            self::Comptoir   => '/comptoir',
-            self::Atelier    => '/scan',
-            self::Qualite    => '/qualite',
-            self::Commercial => '/commercial',
+            self::Admin, self::Direction, self::Manager => '/cockpit',
+            self::Comptoir    => '/comptoir',
+            self::Atelier, self::Superviseur => '/scan',
+            self::Qualite     => '/qualite',
+            self::Livreur     => '/commandes',
+            self::Commercial  => '/commercial',
+            self::Marketing   => '/marketing',
         };
     }
 }

@@ -24,14 +24,53 @@ final class Migrator
                 $out[] = "= $name (déjà appliquée)";
                 continue;
             }
-            $sql = (string)preg_replace('/^--.*$/m', '', (string)file_get_contents($file));
-            foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
+            foreach (self::statements((string)file_get_contents($file)) as $stmt) {
                 $pdo->exec($stmt);
             }
             Database::insert('schema_migrations', ['name' => $name, 'applied_at' => now()]);
             $out[] = "+ $name";
         }
         return $out;
+    }
+
+    /**
+     * Triggers « ajout seul » (database/optional/) : appliqués si l'hébergeur le permet.
+     * @return string « appliqués », ou la raison pour laquelle ils sont indisponibles
+     */
+    public static function applyOptionalTriggers(): string
+    {
+        $file = BASE_PATH . '/database/optional/append_only_triggers.sql';
+        if (!is_file($file)) {
+            return 'fichier absent';
+        }
+        try {
+            foreach (self::statements((string)file_get_contents($file)) as $stmt) {
+                Database::pdo()->exec($stmt);
+            }
+            return 'appliqués';
+        } catch (\PDOException $e) {
+            return 'indisponibles (' . mb_substr($e->getMessage(), 0, 160) . ')';
+        }
+    }
+
+    public static function triggersInstalled(): bool
+    {
+        return (int)Database::value('SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME LIKE ?', ['%_no_%']) > 0;
+    }
+
+    /**
+     * Découpe un fichier SQL. Par défaut le séparateur est « ; ».
+     * Une ligne « -- @delimiter ;; » en tête change le séparateur (corps de trigger avec BEGIN … END).
+     * @return list<string>
+     */
+    public static function statements(string $sql): array
+    {
+        $delimiter = ';';
+        if (preg_match('/^-- @delimiter (\S+)/m', $sql, $m)) {
+            $delimiter = $m[1];
+        }
+        $sql = (string)preg_replace('/^--.*$/m', '', $sql);
+        return array_values(array_filter(array_map('trim', explode($delimiter, $sql)), fn($s) => $s !== ''));
     }
 
     /** Données de référence (agence, atelier, tarifs, objectifs) : une seule fois, base sans utilisateur. */
@@ -57,13 +96,13 @@ final class Migrator
         return $dla;
     }
 
-    /** Crée un administrateur (rôle direction) avec un mot de passe aléatoire ; retourne [login, mot de passe]. */
+    /** Crée un administrateur système avec un mot de passe aléatoire ; retourne [login, mot de passe]. */
     public static function createAdmin(int $agencyId, string $login = 'admin'): array
     {
         $password = substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 14);
         Database::insert('users', [
             'agency_id' => $agencyId, 'name' => 'Administrateur', 'login' => $login,
-            'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => 'direction', 'active' => 1,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => 'admin', 'active' => 1,
         ]);
         return [$login, $password];
     }

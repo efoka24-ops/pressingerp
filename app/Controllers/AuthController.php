@@ -30,7 +30,8 @@ final class AuthController extends Controller
         if (!$ok) {
             $this->fail('Identifiant ou mot de passe incorrect.', '/login' . ($pin !== '' ? '?mode=pin' : ''));
         }
-        if ($agency = $this->int('agency_id')) {
+        // Seuls Admin et Direction peuvent choisir l'agence de travail ; les autres restent sur la leur.
+        if (($agency = $this->int('agency_id')) && Auth::role()?->canSwitchAgency() && Database::value('SELECT id FROM agencies WHERE id = ?', [$agency])) {
             $_SESSION['agency_id'] = $agency;
         }
         unset($_SESSION['_old']);

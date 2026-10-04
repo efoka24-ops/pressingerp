@@ -37,6 +37,8 @@ $config = [
         'webhook_secret' => getenv('SUNGKU_WEBHOOK_SECRET') ?: '',
         'currency'       => 'XAF',
     ],
+    // Clé secrète de la chaîne d'audit (HMAC). À définir dans config.local.php ; vide = SHA-256 simple (développement)
+    'audit' => ['key' => getenv('AUDIT_KEY') ?: ''],
     // Jeton de migration à usage unique (vide = migrations web désactivées)
     'migrate_token' => getenv('MIGRATE_TOKEN') ?: '',
 ];

@@ -23,9 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $expected === '' || !hash_equals($e
     exit("Not found\n");
 }
 
-echo implode("\n", Migrator::run()), "\n";
-if (($agency = Migrator::seedReference()) !== null) {
-    [$login, $password] = Migrator::createAdmin($agency);
-    echo "→ Données de référence créées\n→ Administrateur\n   identifiant : $login\n   mot de passe : $password\n   (affiché une seule fois : changez-le après connexion)\n";
+try {
+    echo implode("\n", Migrator::run()), "\n";
+    echo "triggers ajout seul : ", Migrator::applyOptionalTriggers(), "\n";
+    if (($agency = Migrator::seedReference()) !== null) {
+        [$login, $password] = Migrator::createAdmin($agency);
+        echo "→ Données de référence créées\n→ Administrateur\n   identifiant : $login\n   mot de passe : $password\n   (affiché une seule fois : changez-le après connexion)\n";
+    }
+    echo "Terminé.\n";
+} catch (Throwable $e) {
+    // Page protégée par jeton : on affiche la cause réelle pour diagnostiquer
+    http_response_code(500);
+    echo 'ERREUR migration : ', get_class($e), ' : ', $e->getMessage(), "\n";
 }
-echo "Terminé.\n";

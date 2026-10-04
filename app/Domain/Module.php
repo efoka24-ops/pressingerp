@@ -21,6 +21,7 @@ final class Module
         'marketing'  => ['08', 'Marketing & Fidélité', '/marketing'],
         'stock'      => ['09', 'Stocks', '/stocks'],
         'bi'         => ['10', 'Business Intelligence', '/bi'],
+        'admin'      => ['11', 'Administration', '/admin'],
     ];
 
     private static array $badges = [];

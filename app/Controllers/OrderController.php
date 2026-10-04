@@ -43,7 +43,7 @@ final class OrderController extends Controller
     public function index(): void
     {
         $tab = array_key_exists($this->str('tab'), self::TABS) ? $this->str('tab') : 'actives';
-        $ag = $this->int('agence');
+        $ag = Auth::scopedAgencyId() ?: $this->int('agence');
         $q = $this->str('q');
         $where = [$this->tabCondition($tab)];
         $p = [];
@@ -199,7 +199,7 @@ final class OrderController extends Controller
     {
         return Database::one(
             'SELECT o.*, c.name client, c.phone, c.code client_code, c.is_vip, c.type client_type, c.preferences, c.loyalty_points, a.name agency, u.name user
-             FROM orders o JOIN clients c ON c.id = o.client_id JOIN agencies a ON a.id = o.agency_id LEFT JOIN users u ON u.id = o.user_id WHERE o.id = ?',
+             FROM orders o JOIN clients c ON c.id = o.client_id JOIN agencies a ON a.id = o.agency_id LEFT JOIN users u ON u.id = o.user_id WHERE o.id = ?' . (Auth::scopedAgencyId() ? ' AND o.agency_id = ' . Auth::scopedAgencyId() : ''),
             [$id]
         ) ?? throw new HttpException(404, 'Commande introuvable');
     }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Services\WorkflowService;
@@ -20,14 +21,14 @@ final class TraceController extends Controller
             $garment = Database::one(
                 'SELECT g.*, o.number, o.id order_id, o.created_at order_created, o.promised_at, c.name client, a.name agency
                  FROM garments g JOIN orders o ON o.id = g.order_id JOIN clients c ON c.id = o.client_id JOIN agencies a ON a.id = o.agency_id
-                 WHERE g.code = ?',
+                 WHERE g.code = ?' . (Auth::scopedAgencyId() ? ' AND o.agency_id = ' . Auth::scopedAgencyId() : ''),
                 [$q]
             );
             if ($garment) {
                 $events = WorkflowService::events((int)$garment['id']);
             }
         } elseif ($q !== '') {
-            $order = Database::one('SELECT o.*, c.name client FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.number = ?', [$q]);
+            $order = Database::one('SELECT o.*, c.name client FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.number = ?' . (Auth::scopedAgencyId() ? ' AND o.agency_id = ' . Auth::scopedAgencyId() : ''), [$q]);
             if ($order) {
                 $garments = Database::all('SELECT * FROM garments WHERE order_id = ? ORDER BY seq', [$order['id']]);
             }

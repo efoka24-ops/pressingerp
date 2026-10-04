@@ -178,6 +178,6 @@ final class OrderService
             throw new \DomainException('Motif d\'annulation obligatoire.');
         }
         Database::update('orders', ['status' => 'annule', 'notes' => trim(($o['notes'] ?? '') . "\nAnnulée : " . $reason)], 'id = :id', ['id' => $orderId]);
-        Audit::log('order.cancel', 'orders', $orderId, ['reason' => $reason]);
+        Audit::log('order.cancel', 'orders', $orderId, [], ['status' => $o['status']], ['status' => 'annule'], $reason);
     }
 }

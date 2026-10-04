@@ -115,8 +115,9 @@ final class ClientController extends Controller
         if ($dup) {
             $this->fail("Ce numéro appartient déjà à {$dup['name']}.");
         }
+        $changed = array_keys(array_filter($data, fn($v, $k) => array_key_exists($k, $c) && (string)$c[$k] !== (string)$v, ARRAY_FILTER_USE_BOTH));
         Database::update('clients', $data, 'id = :id', ['id' => $c['id']]);
-        Audit::log('client.update', 'clients', (int)$c['id']);
+        Audit::log('client.update', 'clients', (int)$c['id'], [], array_intersect_key($c, array_flip($changed)), array_intersect_key($data, array_flip($changed)));
         $this->ok('Fiche client mise à jour.', '/clients/' . $c['id']);
     }
 

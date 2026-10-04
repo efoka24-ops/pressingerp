@@ -50,10 +50,10 @@ final class Router
             if ($method === 'POST' && $route['csrf']) {
                 Csrf::verify();
             }
-            if ($route['perm'] !== null) {
-                Auth::authorize($route['perm']);
-            }
             $params = array_map('urldecode', array_filter($m, 'is_string', ARRAY_FILTER_USE_KEY));
+            if ($route['perm'] !== null) {
+                Auth::authorize($route['perm'], $method, $params !== []);
+            }
             [$class, $action] = $route['handler'];
             (new $class())->$action(...$params);
             return;

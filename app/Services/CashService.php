@@ -80,7 +80,7 @@ final class CashService
                 'justification' => trim($justification) ?: null,
             ], 'id = :id', ['id' => $session['id']]);
         });
-        Audit::log('cash.close', 'cash_sessions', (int)$session['id'], ['diff' => $diff]);
+        Audit::log('cash.close', 'cash_sessions', (int)$session['id'], ['diff' => $diff], null, null, trim($justification) ?: null);
         return $diff;
     }
 }

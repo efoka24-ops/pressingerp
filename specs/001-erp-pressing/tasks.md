@@ -1,6 +1,6 @@
 # Tâches — ERP Pressing (mise à niveau du code PHP existant)
 
-Format : `- [ ] Txxx [P] Description (chemin)`. `[P]` = parallélisable. Chaque phase se termine par un point de contrôle. Contexte : [plan.md](plan.md), [audit-code-existant.md](audit-code-existant.md).
+Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en partie (voir la note). `[P]` = parallélisable. `[x]` fait, `[~]` fait en partie (voir la note). Chaque phase se termine par un point de contrôle. Contexte : [plan.md](plan.md), [audit-code-existant.md](audit-code-existant.md).
 
 ## Phase 0 — Reprise, sécurité d'exploitation, localisation, premier déploiement
 - [x] T001 Trancher les questions ouvertes (spec §7, D1–D9)
@@ -23,20 +23,20 @@ Format : `- [ ] Txxx [P] Description (chemin)`. `[P]` = parallélisable. Chaque 
 **Contrôle** : site en ligne, connexion administrateur, aucune donnée de démo, déploiement reproductible.
 
 ## Phase 1 — Socle : audit, RBAC, paramètres, sauvegarde
-- [ ] T020 Migration audit v2 : `old_value`, `new_value`, `reason`, `agency_id`, `prev_hash`, `hash`
-- [ ] T021 Triggers MySQL interdisant UPDATE/DELETE sur `audit_log`, `garment_events`, `payments`, `stock_movements`
-- [ ] T022 `Audit::log()` v2 avec ancienne/nouvelle valeur et motif ; l'appeler pour remises, annulations, prix, factures (app/Services/Audit.php)
-- [ ] T023 Journaliser les accès refusés (403) et les connexions échouées
-- [ ] T024 [P] RBAC fin : lecture/création/modification/validation/suppression par module (app/Domain/Role.php, app/Core/Auth.php)
-- [ ] T025 [P] Rôles manquants : administrateur, superviseur, livreur, marketing ; définir « Limité » (spec A6)
-- [ ] T026 Cloisonnement par agence : helper central appliquant `agency_id` à toutes les requêtes, avec tests
-- [ ] T027 Table `settings`, `SettingsService` et écran admin (seuils D3, relances, VIP, plafonds), versionné
-- [ ] T028 Écran admin utilisateurs / agences
-- [ ] T029 `bin/backup.php` : mysqldump compressé, rétention, copie externalisée ; cron quotidien
-- [ ] T030 Procédure de restauration documentée et testée (ops/restauration.md)
-- [ ] T031 Tests CLI : `tests/audit.php`, `tests/rbac.php`, `tests/agency.php`
+- [x] T020 Migration audit v2 (0003) : `old_value`, `new_value`, `reason`, `agency_id`, `prev_hash`, `hash` — appliquée en ligne
+- [~] T021 Triggers refusés par Camoo (erreur 1419, SUPER requis). Remplacés par : aucun UPDATE/DELETE dans le code (test de balayage) et chaîne de hachage signée par clé secrète (HMAC). Triggers conservés dans `database/optional/`, tentés à chaque migration. Limite : la suppression des dernières lignes seules n'est pas détectable sans ancrage externe
+- [x] T022 `Audit::log()` v2 (ancienne/nouvelle valeur, motif) appelé pour annulation, fiche client, plafond, clôture de caisse, paramètres, utilisateurs, agences. Prix et remises : phases 2 et 5
+- [x] T023 Accès refusés (`access.denied`) et connexions échouées (`auth.failed`) journalisés
+- [x] T024 RBAC fin : lecture/création/modification/validation/suppression par module (Role.php, Auth.php, Router) ; validations explicites : annulation, contrôle qualité, résiliation, envoi de campagne
+- [x] T025 Rôles ajoutés : administrateur, superviseur, livreur, marketing ; « Limité » = sous-ensemble de droits défini dans `Role::rights()`
+- [~] T026 Choix d'agence à la connexion réservé à Admin/Direction (faille corrigée) ; périmètre appliqué aux commandes, traçabilité et cockpit pour comptoir/responsable. Reste : recherche globale, caisse, clients
+- [x] T027 Paramètres versionnés en ajout seul (`settings`) + écran admin avec motif obligatoire et historique
+- [x] T028 Écrans admin : utilisateurs (création, rôle, agence, activation, réinitialisation), agences
+- [~] T029 `bin/backup.php` testé en ligne (27 tables, archive vérifiée). Reste : cron dans le panneau Camoo et copie externalisée (`backup.ftp`, destination à fournir)
+- [~] T030 Procédure écrite (ops/restauration.md), intégrité de l'archive contrôlée. Reste : test de restauration complet dans une seconde base
+- [x] T031 Recette `tests/` (audit, rbac, agence, Mobile Money) exécutée en ligne via `ops/deploy.sh run selftest` : 21 réussis, 0 échec, 4 ignorés (triggers)
 
-**Contrôle** : une modification de prix apparaît avec ancienne/nouvelle valeur ; UPDATE sur l'audit refusé ; restauration réussie.
+**Contrôle** : paramètres et annulations apparaissent avec ancienne/nouvelle valeur ; la chaîne d'audit se vérifie ; restauration complète à tester.
 
 ## Phase 2 — Réception conforme (US1)
 - [ ] T040 Client anonyme : autorisé au comptoir, interdit pour crédit, livraison, fidélité, relances (spec A10)
