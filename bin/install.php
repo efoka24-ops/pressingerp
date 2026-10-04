@@ -3,16 +3,18 @@ declare(strict_types=1);
 
 /**
  * Installation : php bin/install.php [--demo]
- *  - crée les tables (ATTENTION : supprime les tables existantes)
+ *  - crée les tables par les migrations (refuse si la base contient déjà des tables)
  *  - insère les données de référence (agences, articles, comptes)
- *  - --demo : 12 mois d'historique, commandes en cours, factures, caisses, stocks…
+ *  - --demo : interdit si APP_ENV=production ; 12 mois d'historique, commandes en cours, factures, caisses, stocks…
  */
 
 define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/app/bootstrap.php';
 
+use App\Core\Config;
 use App\Core\Database;
 use App\Services\InvoiceService;
+use App\Services\Migrator;
 
 if (PHP_SAPI !== 'cli') {
     exit("CLI uniquement.\n");
@@ -22,21 +24,25 @@ if (PHP_VERSION_ID < 80100) {
 }
 
 $demo = in_array('--demo', $argv, true);
-$pdo = Database::pdo();
 
-echo "→ Création du schéma…\n";
-$sql = (string)file_get_contents(BASE_PATH . '/database/schema.sql');
-$sql = preg_replace('/^--.*$/m', '', $sql);
-foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
-    $pdo->exec($stmt);
+// Garde-fous : jamais de démo en production, jamais sur une base déjà utilisée
+if ($demo && (string)Config::get('app.env') === 'production') {
+    exit("Refus : --demo est interdit en production (APP_ENV=production). Utilisez APP_ENV=local.\n");
 }
+$pdo = Database::pdo();
+if (Database::all('SHOW TABLES')) {
+    exit("Refus : la base contient déjà des tables. Utilisez php bin/migrate.php pour la mettre à jour.\n");
+}
+
+echo "→ Création du schéma (migrations)…\n";
+echo implode("\n", Migrator::run()), "\n";
 
 echo "→ Données de référence…\n";
 $ag = [];
 foreach ([
-    ['PL', 'Plateau', '+225 27 20 30 40 50', 0],
-    ['CO', 'Cocody', '+225 27 22 44 55 66', 0],
-    ['MA', 'Marcory', '+225 27 21 26 70 80', 0],
+    ['AK', 'Akwa (Douala)', '+237 6 99 00 10 20', 0],
+    ['BO', 'Bonamoussadi (Douala)', '+237 6 99 00 30 40', 0],
+    ['BE', 'Bastos (Yaoundé)', '+237 6 99 00 50 60', 0],
     ['AT', 'Atelier central', null, 1],
 ] as [$code, $name, $phone, $ws]) {
     $ag[$code] = Database::insert('agencies', ['code' => $code, 'name' => $name, 'phone' => $phone, 'is_workshop' => $ws]);
@@ -46,16 +52,16 @@ $password = password_hash('pressing2026', PASSWORD_DEFAULT);
 $pin = password_hash('1234', PASSWORD_DEFAULT);
 $users = [];
 foreach ([
-    ['direction', 'Awa Koné', 'direction', 'PL', false],
-    ['manager.plateau', 'Paul Aké', 'manager', 'PL', false],
-    ['fatou.diallo', 'Fatou Diallo', 'comptoir', 'PL', false],
-    ['kouame.brou', 'Kouamé Brou', 'comptoir', 'CO', false],
-    ['ines.gnagne', 'Inès Gnagne', 'comptoir', 'MA', false],
-    ['atelier.bamba', 'Adama Bamba', 'atelier', 'AT', true],
-    ['atelier.traore', 'Seydou Traoré', 'atelier', 'AT', true],
-    ['atelier.yao', 'Kouassi Yao', 'atelier', 'AT', true],
-    ['qualite.aka', 'Nadège Aka', 'qualite', 'AT', true],
-    ['commercial.toure', 'Moussa Touré', 'commercial', 'PL', false],
+    ['direction', 'Awa Njoya', 'direction', 'AK', false],
+    ['manager.akwa', 'Paul Essomba', 'manager', 'AK', false],
+    ['fatou.diallo', 'Fatou Tchamba', 'comptoir', 'AK', false],
+    ['kouame.brou', 'Brice Kamga', 'comptoir', 'BO', false],
+    ['ines.gnagne', 'Inès Nguemo', 'comptoir', 'BE', false],
+    ['atelier.bamba', 'Adama Sidibé', 'atelier', 'AT', true],
+    ['atelier.traore', 'Serge Mvondo', 'atelier', 'AT', true],
+    ['atelier.yao', 'Yves Onana', 'atelier', 'AT', true],
+    ['qualite.aka', 'Nadège Abanda', 'qualite', 'AT', true],
+    ['commercial.toure', 'Moussa Manga', 'commercial', 'AK', false],
 ] as [$login, $name, $role, $agency, $hasPin]) {
     $users[$login] = Database::insert('users', [
         'agency_id' => $ag[$agency], 'name' => $name, 'login' => $login, 'password_hash' => $password,
@@ -114,14 +120,14 @@ $nextNumber = function (string $name, string $fmt, int $year) use (&$counters): 
 };
 
 // Clients
-$firsts = ['Awa', 'Mariam', 'Fatou', 'Aminata', 'Koffi', 'Yao', 'Ibrahim', 'Jean-Marc', 'Adjoua', 'Moussa', 'Salimata', 'Kouadio', 'Aya', 'Serge', 'Rokia', 'Didier', 'Nadia', 'Karim', 'Estelle', 'Hervé', 'Fanta', 'Arsène', 'Bintou', 'Wilfried'];
-$lasts = ['Ouattara', 'Kouassi', 'Bakayoko', 'Koné', 'Traoré', 'Diallo', 'Sanogo', 'Yao', 'Bamba', 'Assi', 'Coulibaly', 'Kouamé', "N'Guessan", 'Touré', 'Diabaté', 'Gbagbo', 'Kacou', 'Dosso'];
-$areas = ['Cocody Angré', 'Cocody Riviera 3', 'Plateau', 'Marcory Zone 4', 'Deux-Plateaux', 'Treichville', 'Yopougon', 'Bingerville'];
+$firsts = ['Aïcha', 'Mariam', 'Fatimatou', 'Estelle', 'Brice', 'Rodrigue', 'Ibrahim', 'Jean-Marc', 'Carine', 'Moussa', 'Nadège', 'Arnaud', 'Larissa', 'Serge', 'Prisca', 'Didier', 'Nadia', 'Karim', 'Sandrine', 'Hervé', 'Fanta', 'Parfait', 'Flore', 'Wilfried'];
+$lasts = ['Mbarga', 'Nkoulou', 'Tchamba', 'Fotso', 'Ndongo', 'Kamga', 'Essomba', 'Njoya', 'Biya', 'Atangana', 'Nguemo', 'Tagne', 'Mvondo', 'Onana', 'Sidibé', 'Abanda', 'Kenfack', 'Manga'];
+$areas = ['Akwa', 'Bonanjo', 'Bonapriso', 'Bonamoussadi', 'Makepe', 'Deido', 'Bastos', 'Mvan'];
 $clients = [];
 $phones = [];
 $mkPhone = function () use (&$phones): string {
     do {
-        $p = '+225' . $GLOBALS['rand'](['07', '05', '01']) . sprintf('%08d', mt_rand(0, 99_999_999));
+        $p = '+2376' . sprintf('%08d', mt_rand(0, 99_999_999));
     } while (isset($phones[$p]));
     $phones[$p] = true;
     return $p;
@@ -135,9 +141,9 @@ $newClient = function (array $data) use (&$clientCount, $mkPhone): int {
         'preferred_channel' => mt_rand(0, 2) ? 'whatsapp' : 'sms', 'created_at' => date('Y-m-d H:i:s', strtotime('-' . mt_rand(40, 900) . ' days')),
     ]);
 };
-$vip = $newClient(['name' => 'Mariam Ouattara', 'is_vip' => 1, 'address' => 'Cocody Angré', 'preferences' => "Amidon léger sur les chemises.\nRendu sur cintre avec housse.\nLivraison après 18 h.", 'notes' => 'Allergique aux parfums d\'assouplissant — lavage sans parfum.']);
+$vip = $newClient(['name' => 'Mariam Fotso', 'is_vip' => 1, 'address' => 'Bonapriso', 'preferences' => "Amidon léger sur les chemises.\nRendu sur cintre avec housse.\nLivraison après 18 h.", 'notes' => 'Allergique aux parfums d\'assouplissant — lavage sans parfum.']);
 $clients[] = $vip;
-$clients[] = $newClient(['name' => 'Jean-Marc Kouassi', 'address' => 'Plateau']);
+$clients[] = $newClient(['name' => 'Jean-Marc Mbarga', 'address' => 'Akwa']);
 for ($i = 0; $i < 70; $i++) {
     $clients[] = $newClient(['name' => $rand($firsts) . ' ' . $rand($lasts), 'address' => $rand($areas), 'is_vip' => mt_rand(1, 20) === 1 ? 1 : 0]);
 }
@@ -161,9 +167,9 @@ foreach ([
 
 // Générateur de commandes
 $pieceArticles = array_filter($articles, fn($a) => $a['unit'] === 'piece');
-$agencies = [$ag['PL'] => $users['fatou.diallo'], $ag['CO'] => $users['kouame.brou'], $ag['MA'] => $users['ines.gnagne']];
+$agencies = [$ag['AK'] => $users['fatou.diallo'], $ag['BO'] => $users['kouame.brou'], $ag['BE'] => $users['ines.gnagne']];
 $operators = [$users['atelier.bamba'], $users['atelier.traore'], $users['atelier.yao']];
-$methods = ['especes' => 45, 'orange' => 20, 'wave' => 15, 'mtn' => 10, 'moov' => 4, 'carte' => 6];
+$methods = ['especes' => 45, 'orange' => 30, 'mtn' => 19, 'carte' => 6];
 $surch = ['standard' => 0, 'express' => 50, 'vip' => 20];
 $delay = ['standard' => 72, 'express' => 24, 'vip' => 48];
 $steps = ['tri', 'detachage', 'lavage', 'sechage', 'repassage', 'finition', 'controle', 'emballage', 'pret'];
@@ -257,16 +263,16 @@ for ($d = 365; $d >= 2; $d--) {
     }
     foreach ($pros as $pid => $p) {
         if (mt_rand(1, $pid === array_key_first($pros) ? 1 : 3) === 1) {
-            $makeOrder($pid, $day + 9 * 3600 + mt_rand(0, 1800), 'retire', $p['discount'], ['big' => $p['big'], 'agency' => $ag['PL']]);
+            $makeOrder($pid, $day + 9 * 3600 + mt_rand(0, 1800), 'retire', $p['discount'], ['big' => $p['big'], 'agency' => $ag['AK']]);
         }
     }
 }
 echo "  · historique créé\n";
 
-// Session de caisse ouverte aujourd'hui (Plateau) + clôture avec écart (Cocody)
-$sessionPl = Database::insert('cash_sessions', ['agency_id' => $ag['PL'], 'user_id' => $users['fatou.diallo'], 'label' => 'Caisse 2', 'opened_at' => date('Y-m-d 07:58:00'), 'opening_float' => 20000, 'status' => 'ouverte']);
-$sessionCo = Database::insert('cash_sessions', ['agency_id' => $ag['CO'], 'user_id' => $users['kouame.brou'], 'label' => 'Caisse 1', 'opened_at' => date('Y-m-d 08:02:00'), 'opening_float' => 15000, 'closed_at' => date('Y-m-d H:i:s', time() - 1800), 'status' => 'cloturee', 'justification' => 'Rendu monnaie erroné probable, à vérifier avec la vidéo.']);
-foreach ([['especes', 78000, 63500], ['orange', 54000, 54000], ['mtn', 21500, 21500], ['wave', 24500, 24500], ['moov', 0, 0], ['carte', 8000, 8000]] as [$m, $e, $c]) {
+// Session de caisse ouverte aujourd'hui (Akwa) + clôture avec écart (Bonamoussadi)
+$sessionPl = Database::insert('cash_sessions', ['agency_id' => $ag['AK'], 'user_id' => $users['fatou.diallo'], 'label' => 'Caisse 2', 'opened_at' => date('Y-m-d 07:58:00'), 'opening_float' => 20000, 'status' => 'ouverte']);
+$sessionCo = Database::insert('cash_sessions', ['agency_id' => $ag['BO'], 'user_id' => $users['kouame.brou'], 'label' => 'Caisse 1', 'opened_at' => date('Y-m-d 08:02:00'), 'opening_float' => 15000, 'closed_at' => date('Y-m-d H:i:s', time() - 1800), 'status' => 'cloturee', 'justification' => 'Rendu monnaie erroné probable, à vérifier avec la vidéo.']);
+foreach ([['especes', 78000, 63500], ['orange', 54000, 54000], ['mtn', 21500, 21500], ['carte', 8000, 8000]] as [$m, $e, $c]) {
     Database::insert('cash_counts', ['cash_session_id' => $sessionCo, 'method' => $m, 'expected' => $e, 'counted' => $c]);
 }
 
@@ -282,25 +288,25 @@ for ($i = 0; $i < 70; $i++) {
         $stepsForLines[$k] = $weighted(['tri' => 6, 'detachage' => 5, 'lavage' => 14, 'sechage' => 10, 'repassage' => 30, 'finition' => 9, 'controle' => 9, 'emballage' => 6]);
     }
     $makeOrder($rand($clients), $ts, 'en_atelier', null, [
-        'agency' => $isPl ? $ag['PL'] : array_rand($agencies), 'steps' => $stepsForLines, 'stale' => 320,
+        'agency' => $isPl ? $ag['AK'] : array_rand($agencies), 'steps' => $stepsForLines, 'stale' => 320,
         'deposit' => mt_rand(0, 2) === 0 ? 2000 : 0, 'session' => $isPl && $ts > strtotime('today 08:00') ? $sessionPl : null,
     ]);
 }
 // Commandes prêtes à retirer, dont certaines anciennes
 for ($i = 0; $i < 40; $i++) {
     $ts = time() - mt_rand(30, 24 * 20) * 3600;
-    $makeOrder($rand($clients), $ts, 'pret', null, ['agency' => $i % 2 ? $ag['PL'] : array_rand($agencies), 'ready' => min(time() - 3600, $ts + 30 * 3600)]);
+    $makeOrder($rand($clients), $ts, 'pret', null, ['agency' => $i % 2 ? $ag['AK'] : array_rand($agencies), 'ready' => min(time() - 3600, $ts + 30 * 3600)]);
 }
 // Pros en cours, dont un gros lot bloqué
 $hotel = array_key_first($pros);
-$makeOrder($hotel, time() - 8 * 3600, 'en_atelier', $pros[$hotel]['discount'], ['big' => [48, 48], 'agency' => $ag['PL'], 'level' => 'standard', 'steps' => array_fill(0, 48, 'repassage'), 'status' => array_fill(0, 48, 'a_traiter'), 'stale' => 320]);
+$makeOrder($hotel, time() - 8 * 3600, 'en_atelier', $pros[$hotel]['discount'], ['big' => [48, 48], 'agency' => $ag['AK'], 'level' => 'standard', 'steps' => array_fill(0, 48, 'repassage'), 'status' => array_fill(0, 48, 'a_traiter'), 'stale' => 320]);
 Database::run("UPDATE orders SET promised_at = DATE_SUB(NOW(), INTERVAL 3 HOUR) WHERE client_id = ? ORDER BY id DESC LIMIT 1", [$hotel]);
 // Commande VIP en retard au détachage
-$vipOrder = $makeOrder($vip, time() - 50 * 3600, 'en_atelier', null, ['agency' => $ag['CO'], 'level' => 'vip', 'steps' => ['detachage', 'controle', 'emballage'], 'status' => ['a_reprendre', 'a_traiter', 'a_traiter']]);
+$vipOrder = $makeOrder($vip, time() - 50 * 3600, 'en_atelier', null, ['agency' => $ag['BO'], 'level' => 'vip', 'steps' => ['detachage', 'controle', 'emballage'], 'status' => ['a_reprendre', 'a_traiter', 'a_traiter']]);
 Database::run('UPDATE orders SET promised_at = DATE_SUB(NOW(), INTERVAL 2 HOUR) WHERE id = ?', [$vipOrder]);
 
 // Paiements du jour liés à la caisse ouverte
-Database::run("UPDATE payments SET cash_session_id = ? WHERE created_at >= CURDATE() AND cash_session_id IS NULL AND order_id IN (SELECT id FROM orders WHERE agency_id = ?)", [$sessionPl, $ag['PL']]);
+Database::run("UPDATE payments SET cash_session_id = ? WHERE created_at >= CURDATE() AND cash_session_id IS NULL AND order_id IN (SELECT id FROM orders WHERE agency_id = ?)", [$sessionPl, $ag['AK']]);
 echo "  · commandes en cours créées\n";
 
 // Compteurs
@@ -356,4 +362,4 @@ Database::insert('campaigns', ['name' => 'Fêtes de fin d\'année · tenues', 'c
 Database::insert('campaigns', ['name' => 'Réactivation · −20 % 7 jours', 'channel' => 'auto', 'segment' => 'a_risque', 'message' => 'Bonjour {prenom}, vous nous manquez ! -20 % sur votre prochain dépôt cette semaine.', 'status' => 'brouillon', 'created_at' => now()]);
 
 echo "✓ Démo installée.\n";
-echo "  Comptes (mot de passe : pressing2026) : direction, manager.plateau, fatou.diallo, kouame.brou, atelier.bamba (PIN 1234), qualite.aka, commercial.toure\n";
+echo "  Comptes (mot de passe : pressing2026) : direction, manager.akwa, fatou.diallo, kouame.brou, atelier.bamba (PIN 1234), qualite.aka, commercial.toure\n";

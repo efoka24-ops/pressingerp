@@ -13,7 +13,7 @@ mysql -u root -e "CREATE DATABASE pressing_erp CHARACTER SET utf8mb4 COLLATE utf
 
 # 2. Configuration (variables d'environnement ou config/config.php)
 export DB_DSN="mysql:host=127.0.0.1;dbname=pressing_erp;charset=utf8mb4" DB_USER=root DB_PASS=""
-export APP_URL="http://localhost:8000"
+export APP_URL="http://localhost:8000" APP_ENV=local
 
 # 3. Tables + données de démonstration (12 mois d'historique)
 php bin/install.php --demo        # sans --demo : données de référence uniquement
@@ -27,8 +27,8 @@ Comptes de démonstration (mot de passe `pressing2026`) :
 | Identifiant | Profil | Arrive sur |
 |---|---|---|
 | `direction` | Direction | Cockpit |
-| `manager.plateau` | Responsable d'agence | Cockpit |
-| `fatou.diallo` | Comptoir (Plateau, caisse ouverte) | Accueil comptoir |
+| `manager.akwa` | Responsable d'agence | Cockpit |
+| `fatou.diallo` | Comptoir (Akwa, caisse ouverte) | Accueil comptoir |
 | `atelier.bamba` | Atelier (PIN `1234`) | Scan QR |
 | `qualite.aka` | Contrôle qualité | Qualité |
 | `commercial.toure` | Commercial | Contrats |
@@ -56,7 +56,7 @@ app/
   Services/        Logique métier (voir ci-dessous)
   Controllers/     Un contrôleur par module
   Views/           Gabarits PHP (layout, public, 1 dossier par module)
-database/schema.sql
+database/migrations/ (SQL numéroté, non destructif)
 bin/install.php, bin/send-messages.php
 ```
 
@@ -80,7 +80,7 @@ bin/install.php, bin/send-messages.php
   - le taux de reprise suivi est sur 7 et 30 jours.
 - **Caisse** (`CashService`, `PaymentService`) :
   - session par agent, avec fond de caisse ;
-  - le comptoir encaisse en espèces, Mobile Money (Orange, MTN, Wave, Moov) ou carte ;
+  - le comptoir encaisse en espèces, Mobile Money (Orange, MTN) ou carte ;
   - à la clôture, les montants comptés sont comparés aux montants théoriques ;
   - tout écart doit être justifié et apparaît comme alerte dans le cockpit.
 - **Commercial** (`InvoiceService`) :

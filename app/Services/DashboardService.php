@@ -159,7 +159,7 @@ final class DashboardService
     public function money(): array
     {
         $pay = Database::one(
-            "SELECT COALESCE(SUM(p.amount), 0) total, COALESCE(SUM(CASE WHEN p.method IN ('orange','mtn','wave','moov') THEN p.amount ELSE 0 END), 0) momo
+            "SELECT COALESCE(SUM(p.amount), 0) total, COALESCE(SUM(CASE WHEN p.method IN ('orange','mtn') THEN p.amount ELSE 0 END), 0) momo
              FROM payments p LEFT JOIN cash_sessions cs ON cs.id = p.cash_session_id
              WHERE p.created_at >= CURDATE() AND (:ag = 0 OR cs.agency_id = :ag)",
             $this->p()

@@ -6,6 +6,8 @@ $config = [
         'name'     => 'Pressing ERP',
         'url'      => getenv('APP_URL') ?: 'http://localhost:8000',
         'timezone' => 'Africa/Douala',
+        // production par défaut : plus sûr. En local : APP_ENV=local
+        'env'      => getenv('APP_ENV') ?: 'production',
         'debug'    => (getenv('APP_DEBUG') ?: '1') === '1',
     ],
     'db' => [

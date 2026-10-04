@@ -104,7 +104,7 @@ final class CommercialController extends Controller
             'i'        => $i,
             'orders'   => Database::all('SELECT o.*, (SELECT COUNT(*) FROM garments g WHERE g.order_id = o.id) pcs FROM orders o WHERE o.invoice_id = ? ORDER BY o.created_at', [$i['id']]),
             'payments' => Database::all('SELECT * FROM payments WHERE invoice_id = ? ORDER BY created_at', [$i['id']]),
-            'methods'  => [PaymentMethod::Virement, PaymentMethod::Cheque, PaymentMethod::Especes, PaymentMethod::Orange, PaymentMethod::Mtn, PaymentMethod::Wave, PaymentMethod::Moov],
+            'methods'  => [PaymentMethod::Virement, PaymentMethod::Cheque, PaymentMethod::Especes, PaymentMethod::Orange, PaymentMethod::Mtn],
         ]);
     }
 

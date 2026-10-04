@@ -8,3 +8,4 @@ public/uploads/*
 storage/
 *.log
 ops/config.local.generated.php
+ops/.last-deploy

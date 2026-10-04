@@ -14,7 +14,7 @@
 | Migrations | Fichiers numérotés + table `schema_migrations` | `schema.sql` actuel fait `DROP TABLE` : dangereux en production |
 
 ## Risques
-1. **Perte de données en production** : `database/schema.sql` supprime toutes les tables et `bin/install.php --demo` insère des données de démonstration. Ne jamais l'exécuter sur la base de l'hébergeur une fois utilisée.
+1. **Perte de données en production** : `database/migrations/` supprime toutes les tables et `bin/install.php --demo` insère des données de démonstration. Ne jamais l'exécuter sur la base de l'hébergeur une fois utilisée.
 2. **Données de démonstration ivoiriennes** (Abidjan, +225, Wave, Moov) : à remplacer.
 3. **Comptes de démo** avec mot de passe public `pressing2026` : à supprimer avant toute mise en ligne.
 4. **Hébergement mutualisé** : version de PHP, limites, cron et `mod_rewrite` à vérifier.

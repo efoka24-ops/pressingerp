@@ -7,7 +7,7 @@
 <div class="split">
   <div class="card pad form">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
-      <div><div class="brand" style="color:var(--ink);padding:0"><div class="logo">P</div>Pressing</div><div class="small muted" style="margin-top:8px">Atelier central · Abidjan</div></div>
+      <div><div class="brand" style="color:var(--ink);padding:0"><div class="logo">P</div>Pressing</div><div class="small muted" style="margin-top:8px">Atelier central · Douala</div></div>
       <div class="right"><h1 class="mono"><?= e($i['number']) ?></h1><div class="small muted">émise le <?= dt($i['created_at'], 'd/m/Y') ?> · échéance <?= dt($i['due_date'], 'd/m/Y') ?></div></div>
     </div>
     <div class="note"><b><?= e($i['client']) ?></b><br><?= e($i['address'] ?? '') ?><?= $i['email'] ? '<br>' . e($i['email']) : '' ?></div>

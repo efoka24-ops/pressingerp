@@ -1,4 +1,4 @@
-> Remplacé par `plan.md` : le schéma réel est `database/schema.sql` (MySQL). Ce modèle reste une cible conceptuelle.
+> Remplacé par `plan.md` : le schéma réel est `database/migrations/` (MySQL). Ce modèle reste une cible conceptuelle.
 
 # Modèle de données — ERP Pressing
 
