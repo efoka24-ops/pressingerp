@@ -9,14 +9,14 @@ Format : `- [ ] Txxx [P] Description (chemin)`. `[P]` = parallélisable. Chaque 
 - [x] T004 Auditer le code contre la spec (audit-code-existant.md)
 - [x] T005 CI : `php -l` sur tous les fichiers (.github/workflows/ci.yml)
 - [x] T006 Application vérifiée sur l'instance en ligne (pas de MySQL local sur le poste) : login, cockpit, migrations
-- [x] T007 Retirer `DROP TABLE` de `database/migrations/` ; créer `bin/migrate.php`, `database/migrations/` et la table `schema_migrations`
+- [x] T007 `DROP TABLE` supprimé (`schema.sql` remplacé par `database/migrations/`) ; `bin/migrate.php` et `public/migrate.php` (jeton) via `Migrator`
 - [x] T008 Protéger `bin/install.php` : refuser si la base contient des données, `--demo` interdit si `APP_ENV=production`
 - [x] T009 Charger `config/config.local.php` (non versionné) dans `config/config.php` pour les secrets de l'hébergeur
 - [x] T010 Localisation Cameroun : fuseau `Africa/Douala`, préfixe +237, retirer Wave/Moov, données de démo (Douala, Yaoundé, quartiers)
 - [x] T011 Pas de comptes de démo en production ; premier administrateur créé par `bin/create-admin.php`
 - [x] T012 Hôte Camoo vérifié : PHP 8.1.34, extensions OK, réécriture OK, mysqldump présent, sortie vers Sungku OK ; limites : 30 s, 128 Mo, upload 2 Mo ; cron à créer dans le panneau (ops/exploitation.md)
-- [x] T013 `ops/deploy.ps1` : envoi FTP incrémental (hors `uploads/` et `config.local.php`)
-- [x] T014 Premier déploiement sur `pressing-erp.trugroup.cm` + migration + HTTPS + `APP_DEBUG=0`
+- [x] T013 `ops/deploy.sh` : envoi FTP incrémental (code, config, migrate, check)
+- [x] T014 Premier déploiement sur `pressing-erp.trugroup.cm` (HTTP ; HTTPS en attente du certificat, `APP_DEBUG=0`)
 - [ ] T015 Changer les mots de passe FTP et base exposés lors du cadrage, puis `ops/deploy.sh config` (à faire par vous)
 - [ ] T016 Avis conformité (docs/conformite.md) ; copier les sources dans `docs/sources/` (à faire par vous : les documents ne sont que dans la conversation)
 
