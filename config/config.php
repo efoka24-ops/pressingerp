@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-return [
+$config = [
     'app' => [
         'name'     => 'Pressing ERP',
         'url'      => getenv('APP_URL') ?: 'http://localhost:8000',
-        'timezone' => 'Africa/Abidjan',
+        'timezone' => 'Africa/Douala',
         'debug'    => (getenv('APP_DEBUG') ?: '1') === '1',
     ],
     'db' => [
@@ -28,4 +28,21 @@ return [
     'mobile_money' => [
         'checkout_url' => getenv('MOMO_CHECKOUT_URL') ?: '',
     ],
+    // Passerelle Mobile Money (Sungku -> pawaPay). Valeurs à fournir dans config.local.php
+    'sungku' => [
+        'base_url'       => getenv('SUNGKU_BASE_URL') ?: 'https://sungku.trugroup.cm',
+        'api_key'        => getenv('SUNGKU_API_KEY') ?: '',
+        'webhook_secret' => getenv('SUNGKU_WEBHOOK_SECRET') ?: '',
+        'currency'       => 'XAF',
+    ],
+    // Jeton de migration à usage unique (vide = migrations web désactivées)
+    'migrate_token' => getenv('MIGRATE_TOKEN') ?: '',
 ];
+
+// Surcharges propres à l'hébergement (non versionnées) : secrets, accès base
+$local = __DIR__ . '/config.local.php';
+if (is_file($local)) {
+    $config = array_replace_recursive($config, (array)require $local);
+}
+
+return $config;

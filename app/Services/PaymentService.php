@@ -9,13 +9,13 @@ use App\Domain\PaymentMethod;
 
 final class PaymentService
 {
-    public function record(int $clientId, PaymentMethod $method, int $amount, ?int $orderId = null, ?int $invoiceId = null, ?string $reference = null): int
+    public function record(int $clientId, PaymentMethod $method, int $amount, ?int $orderId = null, ?int $invoiceId = null, ?string $reference = null, bool $viaGateway = false): int
     {
         if ($amount <= 0) {
             throw new \DomainException('Montant invalide.');
         }
         $session = null;
-        if ($method->needsCashSession()) {
+        if (!$viaGateway && $method->needsCashSession()) {
             $session = (new CashService())->current(Auth::id());
             if (!$session) {
                 throw new \DomainException('Ouvrez votre caisse avant d\'encaisser.');

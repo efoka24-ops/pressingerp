@@ -7,3 +7,4 @@ public/uploads/*
 !public/uploads/.gitkeep
 storage/
 *.log
+ops/config.local.generated.php

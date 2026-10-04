@@ -47,6 +47,8 @@ $r->post('/api/devis', [OrderController::class, 'quote'], 'orders');
 $r->get('/commandes/{id}', [OrderController::class, 'show'], 'orders');
 $r->get('/commandes/{id}/etiquettes', [OrderController::class, 'labels'], 'orders');
 $r->post('/commandes/{id}/paiement', [OrderController::class, 'pay'], 'orders');
+$r->post('/commandes/{id}/paiement-mobile', [PaymentController::class, 'initiate'], 'orders');
+$r->webhook('/payments/webhook/sungku', [PaymentController::class, 'sungkuWebhook']);
 $r->post('/commandes/{id}/retrait', [OrderController::class, 'pickup'], 'orders');
 $r->post('/commandes/{id}/annuler', [OrderController::class, 'cancel'], 'orders');
 

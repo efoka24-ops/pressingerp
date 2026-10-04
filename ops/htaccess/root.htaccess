@@ -1,0 +1,5 @@
+# La racine FTP est la racine web : on sert uniquement pressing/public/
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_URI} !^/pressing/public/
+RewriteRule ^(.*)$ /pressing/public/$1 [L]

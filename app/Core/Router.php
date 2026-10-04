@@ -5,7 +5,7 @@ namespace App\Core;
 
 final class Router
 {
-    /** @var list<array{method:string,regex:string,handler:array,perm:?string}> */
+    /** @var list<array{method:string,regex:string,handler:array,perm:?string,csrf:bool}> */
     private array $routes = [];
 
     /** $perm : null = public, 'auth' = connecté, sinon code module (voir App\Domain\Module) */
@@ -19,11 +19,17 @@ final class Router
         return $this->add('POST', $path, $handler, $perm);
     }
 
-    private function add(string $method, string $path, array $handler, ?string $perm): self
+    /** Webhook entrant : pas de session ni de CSRF, l'authenticité est vérifiée par signature dans le contrôleur. */
+    public function webhook(string $path, array $handler): self
+    {
+        return $this->add('POST', $path, $handler, null, false);
+    }
+
+    private function add(string $method, string $path, array $handler, ?string $perm, bool $csrf = true): self
     {
         $path = rtrim($path, '/') ?: '/';
         $regex = '#^' . preg_replace('#\{(\w+)\}#', '(?P<$1>[^/]+)', $path) . '$#';
-        $this->routes[] = ['method' => $method, 'regex' => $regex, 'handler' => $handler, 'perm' => $perm];
+        $this->routes[] = ['method' => $method, 'regex' => $regex, 'handler' => $handler, 'perm' => $perm, 'csrf' => $csrf];
         return $this;
     }
 
@@ -41,7 +47,7 @@ final class Router
                 $allowed = true;
                 continue;
             }
-            if ($method === 'POST') {
+            if ($method === 'POST' && $route['csrf']) {
                 Csrf::verify();
             }
             if ($route['perm'] !== null) {
