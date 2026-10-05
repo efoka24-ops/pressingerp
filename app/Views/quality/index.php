@@ -66,6 +66,7 @@
       <?php endif ?>
     </div>
 
+    <?php if (can('quality', 'create')): ?>
     <form method="post" action="/qualite/reclamations" class="card pad form">
       <?= csrf_field() ?>
       <h2>Nouvelle réclamation</h2>
@@ -76,5 +77,6 @@
       <div class="field"><label>Objet *</label><input class="input" name="subject" required maxlength="200" placeholder="Chemisier décoloré, pièce manquante…"></div>
       <button class="btn dark">Enregistrer la réclamation</button>
     </form>
+    <?php endif ?>
   </div>
 </div>

@@ -28,7 +28,7 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
   <div class="stack">
     <div class="card pad" style="display:flex;align-items:center;gap:14px">
       <div class="avatar" style="width:42px;height:42px;background:var(--ink)"><?= e(initials($o['client'])) ?></div>
-      <div style="flex:1"><a class="strong" href="/clients/<?= $o['client_id'] ?>"><?= e($o['client']) ?></a><?= client_tags($o) ?><div class="mono small muted"><?= e($o['client_code']) ?> · <?= e(ClientService::formatPhone($o['phone'])) ?></div></div>
+      <div style="flex:1"><?php if (can('clients')): ?><a class="strong" href="/clients/<?= $o['client_id'] ?>"><?= e($o['client']) ?></a><?php else: ?><b><?= e($o['client']) ?></b><?php endif ?><?= client_tags($o) ?><div class="mono small muted"><?= e($o['client_code']) ?> · <?= e(ClientService::formatPhone($o['phone'])) ?></div></div>
       <?php if ($o['preferences']): ?><div class="note small" style="max-width:320px"><?= e($o['preferences']) ?></div><?php endif ?>
     </div>
 
@@ -89,7 +89,8 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
     </div>
     <?php endif ?>
 
-    <?php if ($o['status'] === 'pret' && !($delivery && $delivery['status'] !== 'livre')): ?>
+    <?php $canEdit = \App\Core\Auth::can('orders', 'update'); ?>
+    <?php if ($canEdit && $o['status'] === 'pret' && !($delivery && $delivery['status'] !== 'livre')): ?>
       <form method="post" action="/commandes/<?= $o['id'] ?>/retrait" class="card pad form">
         <?= csrf_field() ?>
         <h2><?= $o['delivery_address'] ? 'Remise au livreur / livraison' : 'Retrait client' ?></h2>
@@ -98,7 +99,7 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
         <?php endif ?>
         <button class="btn dark lg block"><?= $balance > 0 ? 'Encaisser ' . money($balance) . ' et remettre' : 'Remettre au client' ?></button>
       </form>
-    <?php elseif ($balance > 0 && $o['status'] === 'en_atelier'): ?>
+    <?php elseif ($canEdit && $balance > 0 && $o['status'] === 'en_atelier'): ?>
       <form method="post" action="/commandes/<?= $o['id'] ?>/paiement" class="card pad form">
         <?= csrf_field() ?>
         <h2>Encaisser</h2>
@@ -126,7 +127,7 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
 
     <?php $manager = Auth::isManager(); $authFields = $manager ? '' : '<div class="row"><div class="field"><label>Responsable : identifiant</label><input class="input" name="auth_login" autocomplete="off" required></div><div class="field"><label>Mot de passe</label><input class="input" type="password" name="auth_password" autocomplete="off" required></div></div>'; ?>
 
-    <?php if ($intents || ($balance > 0 && in_array($o['status'], ['en_atelier', 'pret'], true))): ?>
+    <?php if ($canEdit && ($intents || ($balance > 0 && in_array($o['status'], ['en_atelier', 'pret'], true)))): ?>
     <div class="card pad form">
       <h2>Mobile Money</h2>
       <?php if ($balance > 0 && in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
@@ -152,7 +153,7 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
     </div>
     <?php endif ?>
 
-    <?php if (in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
+    <?php if ($canEdit && in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
     <details class="card pad">
       <summary><b>Remise</b> <span class="small muted">(autorisation d'un responsable)</span></summary>
       <form method="post" action="/commandes/<?= $o['id'] ?>/remise" class="form"><?= csrf_field() ?>
@@ -165,7 +166,7 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
     <?php endif ?>
 
     <?php $cancellable = array_filter($payments, fn($x) => $x['kind'] === 'payment' && !in_array($x['id'], $reversed, true) && !$x['invoice_id']); ?>
-    <?php if ($cancellable && in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
+    <?php if ($canEdit && $cancellable && in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
     <details class="card pad">
       <summary><b>Annuler un encaissement</b> <span class="small muted">(écriture inverse, autorisation d'un responsable)</span></summary>
       <form method="post" action="" class="form" onsubmit="this.action='/paiements/' + this.payment.value + '/annuler'"><?= csrf_field() ?>
@@ -176,7 +177,7 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
       </form>
     </details>
     <?php endif ?>
-    <?php if (Auth::isManager() && in_array($o['status'], ['en_atelier', 'pret'], true) && !(int)$o['paid']): ?>
+    <?php if ($canEdit && Auth::isManager() && in_array($o['status'], ['en_atelier', 'pret'], true) && !(int)$o['paid']): ?>
       <form method="post" action="/commandes/<?= $o['id'] ?>/annuler" class="row" data-confirm="Annuler définitivement cette commande ?">
         <?= csrf_field() ?>
         <div class="field"><input class="input" name="reason" placeholder="Motif d'annulation" required></div>

@@ -36,7 +36,7 @@ use App\Services\ClientService;
       <tbody>
       <?php foreach ($orders as $o): $s = OrderStatus::from($o['status']); $r = risk($o['promised_at'], $o['status']); ?>
         <tr>
-          <td class="mono"><a class="row-link" href="/commandes/<?= $o['id'] ?>"><?= e($o['number']) ?></a></td>
+          <td class="mono"><?php if (can('orders')): ?><a class="row-link" href="/commandes/<?= $o['id'] ?>"><?= e($o['number']) ?></a><?php else: ?><?= e($o['number']) ?><?php endif ?></td>
           <td><?= dt($o['created_at'], 'd/m/Y') ?></td>
           <td class="num"><?= $o['pcs'] ?></td>
           <td class="num"><?= money($o['total']) ?></td>

@@ -16,7 +16,7 @@ $tone = ['critical' => 'red', 'warn' => 'orange', 'info' => ''];
           <?php if ($a['escalated_at']): ?><div class="small red">ESCALADE vers <?= e($a['escalated_role']) ?> depuis <?= dt($a['escalated_at'], 'd/m H:i') ?></div><?php endif ?>
           <?php if ($a['ack_at']): ?><div class="small muted">Pris en compte <?= dt($a['ack_at'], 'd/m H:i') ?></div><?php endif ?>
           <?php if ($a['subject_type'] === 'garment'): ?><a class="small" href="/scan?code=<?= urlencode((string)($codes[(int)$a['subject_id']] ?? '')) ?>">voir la pièce</a>
-          <?php elseif ($a['subject_type'] === 'order'): ?><a class="small" href="/commandes/<?= (int)$a['subject_id'] ?>">voir la commande</a>
+          <?php elseif ($a['subject_type'] === 'order' && can('orders')): ?><a class="small" href="/commandes/<?= (int)$a['subject_id'] ?>">voir la commande</a>
           <?php elseif ($a['subject_type'] === 'delivery'): ?><a class="small" href="/livraisons/<?= (int)$a['subject_id'] ?>">voir la livraison</a>
           <?php elseif ($a['subject_type'] === 'step'): ?><a class="small" href="/production">tableau atelier</a><?php endif ?></td>
         <td class="small"><?= e($a['target_role']) ?></td>
@@ -37,7 +37,7 @@ $tone = ['critical' => 'red', 'warn' => 'orange', 'info' => ''];
     <thead><tr><th></th><th>Commande</th><th>Client</th><th class="num">Pièces</th><th>Étape bloquante</th><th>Depuis</th><th>Responsable</th><th>Promise</th></tr></thead>
     <tbody>
     <?php foreach ($risky as $r): ?>
-      <tr><td><?= dot($r['risk']) ?></td><td><a class="mono strong" href="/commandes/<?= (int)$r['id'] ?>"><?= e($r['number']) ?></a></td><td><?= e($r['client']) ?></td>
+      <tr><td><?= dot($r['risk']) ?></td><td><?php if (can('orders')): ?><a class="mono strong" href="/commandes/<?= (int)$r['id'] ?>"><?= e($r['number']) ?></a><?php else: ?><span class="mono strong"><?= e($r['number']) ?></span><?php endif ?></td><td><?= e($r['client']) ?></td>
       <td class="num"><?= (int)$r['pcs'] ?></td><td><?= e(Step::from($r['step'])->label()) ?></td><td class="small"><?= since($r['step_since']) ?></td>
       <td class="small"><?= e($r['operator'] ?? 'non pris en charge') ?></td><td class="mono small <?= $r['risk'] === 'red' ? 'red' : 'orange' ?>"><?= fdate($r['promised_at']) ?></td></tr>
     <?php endforeach ?>

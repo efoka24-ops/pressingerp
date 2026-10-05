@@ -48,6 +48,7 @@
       <?php endif ?>
     </div>
 
+    <?php if (can('marketing', 'create')): ?>
     <form method="post" action="/marketing/campagnes" class="card pad form">
       <?= csrf_field() ?>
       <h2>Nouvelle campagne</h2>
@@ -59,5 +60,6 @@
       <div class="field"><label>Message * <span class="muted">— variables : {prenom}, {nom}, {points}</span></label><textarea class="input" name="message" maxlength="640" required>Bonjour {prenom}, -20 % sur votre prochain dépôt cette semaine chez Pressing. Vous avez {points} points fidélité.</textarea></div>
       <div class="row"><div class="field" style="max-width:240px"><label>Planifier (optionnel)</label><input class="input" type="datetime-local" name="scheduled_at"></div><button class="btn dark">Créer la campagne</button></div>
     </form>
+    <?php endif ?>
   </div>
 </div>

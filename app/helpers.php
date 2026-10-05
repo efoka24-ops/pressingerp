@@ -60,9 +60,9 @@ function csrf_field(): string
     return '<input type="hidden" name="_csrf" value="' . e(Csrf::token()) . '">';
 }
 
-function can(string $module): bool
+function can(string $module, string $action = 'read'): bool
 {
-    return Auth::can($module);
+    return Auth::can($module, $action);
 }
 
 function partial(string $view, array $data = []): string

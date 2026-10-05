@@ -28,12 +28,12 @@ $maxCount = max(1, ...array_values(array_map(fn($c) => $c['step'] === Step::Pret
           <span class="<?= $cls ?: 'muted' ?>"><?= e($gs->label()) ?><?= $p['operator'] ? ' · ' . e($p['operator']) : '' ?> · <?= since($p['step_since']) ?><?= $p['rework_count'] ? ' · reprise' : '' ?></span>
           <span class="muted">Promis <?= fdate($p['promised_at']) ?></span>
           <?php if (!in_array($s, [Step::Controle, Step::Pret, Step::Emballage], true) && $gs !== GarmentStatus::Bloque): ?>
-            <div class="acts">
+            <?php if (can('production', 'update')): ?><div class="acts">
               <?php if ($gs !== GarmentStatus::EnCours): ?>
                 <form method="post" action="/pieces/<?= $p['id'] ?>/action"><?= csrf_field() ?><input type="hidden" name="do" value="start"><input type="hidden" name="back" value="production"><button class="btn sm">Prendre</button></form>
               <?php endif ?>
               <form method="post" action="/pieces/<?= $p['id'] ?>/action"><?= csrf_field() ?><input type="hidden" name="do" value="complete"><input type="hidden" name="back" value="production"><button class="btn sm primary">Terminer</button></form>
-            </div>
+            </div><?php endif ?>
           <?php elseif ($s === Step::Controle && can('quality')): ?>
             <div class="acts"><a class="btn sm primary" href="/qualite/controle/<?= $p['id'] ?>">Contrôler</a></div>
           <?php endif ?>
