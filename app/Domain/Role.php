@@ -41,17 +41,17 @@ enum Role: string
      */
     public function rights(): array
     {
-        $business = array_fill_keys(['cockpit', 'counter', 'clients', 'orders', 'trace', 'production', 'quality', 'cash', 'commercial', 'marketing', 'stock', 'bi', 'pricing'], 'RCUVD');
+        $business = array_fill_keys(['cockpit', 'counter', 'clients', 'orders', 'trace', 'production', 'quality', 'cash', 'commercial', 'marketing', 'stock', 'bi', 'pricing', 'delivery'], 'RCUVD');
         return match ($this) {
             self::Admin       => $business + ['admin' => 'RCUVD'],
             self::Direction   => array_map(fn() => 'RCUV', $business) + ['admin' => 'R'],
             // Responsable d'agence : limité à son agence, donc sans les modules dont les données ne sont pas filtrables par agence
             self::Manager     => array_merge(array_map(fn() => 'RCUV', array_diff_key($business, array_flip(['bi', 'commercial', 'marketing']))), ['pricing' => 'R']),
-            self::Comptoir    => ['counter' => 'R', 'clients' => 'RCU', 'orders' => 'RCU', 'trace' => 'R', 'cash' => 'RCU', 'pricing' => 'R'],
+            self::Comptoir    => ['counter' => 'R', 'clients' => 'RCU', 'orders' => 'RCU', 'trace' => 'R', 'cash' => 'RCU', 'pricing' => 'R', 'delivery' => 'RCU'],
             self::Atelier     => ['production' => 'RU', 'trace' => 'R'],
             self::Superviseur => ['production' => 'RCUV', 'trace' => 'R', 'quality' => 'R', 'orders' => 'R'],
             self::Qualite     => ['quality' => 'RCUV', 'production' => 'R', 'trace' => 'R'],
-            self::Livreur     => ['orders' => 'R', 'trace' => 'R'],
+            self::Livreur     => ['orders' => 'R', 'trace' => 'R', 'delivery' => 'RU'],
             self::Commercial  => ['clients' => 'RCU', 'commercial' => 'RCUV', 'marketing' => 'R', 'bi' => 'R'],
             self::Marketing   => ['clients' => 'R', 'marketing' => 'RCUV', 'bi' => 'R'],
         };
@@ -88,7 +88,7 @@ enum Role: string
             self::Comptoir    => '/comptoir',
             self::Atelier, self::Superviseur => '/scan',
             self::Qualite     => '/qualite',
-            self::Livreur     => '/commandes',
+            self::Livreur     => '/livraisons',
             self::Commercial  => '/commercial',
             self::Marketing   => '/marketing',
         };

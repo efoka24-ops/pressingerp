@@ -202,6 +202,24 @@ final class AlertService
         $stuck = MessageService::stuckCount($now);
         self::sync('messages_stuck', $stuck > 0 ? ['msgstuck' => ["$stuck message(s) client en attente : aucun canal d'envoi n'est configuré (SMS, WhatsApp). Configurer le fournisseur dans config.local.php.", null, null, null, null]] : [], $now);
 
+        // Livraisons et collectes sans livreur dans le délai de la règle
+        $delay = (int)(self::rule('delivery_unassigned')['delay_minutes'] ?? 60);
+        $wanted = [];
+        foreach (Database::all(
+            "SELECT d.id, d.kind, d.agency_id, d.address, o.number FROM deliveries d LEFT JOIN orders o ON o.id = d.order_id
+             WHERE d.driver_id IS NULL AND d.status IN ('a_collecter', 'a_livrer') AND d.created_at <= ?", [$at($delay)]) as $d) {
+            $wanted['dlv:' . $d['id']] = [($d['kind'] === 'collect' ? 'Collecte' : 'Livraison ' . $d['number']) . " sans livreur ({$d['address']}) : affecter.", 'delivery', (int)$d['id'], (int)$d['agency_id'], null];
+        }
+        self::sync('delivery_unassigned', $wanted, $now);
+
+        // Livraisons non abouties à replanifier (créneau dépassé sans nouvelle tentative, ou 3 échecs)
+        $wanted = [];
+        foreach (Database::all(
+            "SELECT d.id, d.agency_id, d.attempts, o.number FROM deliveries d JOIN orders o ON o.id = d.order_id WHERE d.status = 'non_livre'") as $d) {
+            $wanted['dlvfail:' . $d['id']] = ["Livraison de {$d['number']} non aboutie, tentative " . (int)$d['attempts'] . '/' . DeliveryService::MAX_ATTEMPTS . ($d['attempts'] >= DeliveryService::MAX_ATTEMPTS ? ' : contacter le client, envisager le retrait en agence.' : ' : à replanifier.'), 'delivery', (int)$d['id'], (int)$d['agency_id'], null];
+        }
+        self::sync('delivery_failed', $wanted, $now);
+
         // Encours client au-dessus du plafond
         $wanted = [];
         foreach (Database::all("SELECT id, name, credit_limit FROM clients WHERE type = 'pro' AND credit_limit > 0") as $c) {

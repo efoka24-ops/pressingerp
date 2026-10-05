@@ -13,13 +13,13 @@ use App\Domain\PaymentMethod;
  */
 final class PaymentService
 {
-    public function record(int $clientId, PaymentMethod $method, int $amount, ?int $orderId = null, ?int $invoiceId = null, ?string $reference = null, bool $viaGateway = false, ?string $splitGroup = null, ?string $receiptNo = null): int
+    public function record(int $clientId, PaymentMethod $method, int $amount, ?int $orderId = null, ?int $invoiceId = null, ?string $reference = null, bool $viaGateway = false, ?string $splitGroup = null, ?string $receiptNo = null, ?int $sessionId = null): int
     {
         if ($amount <= 0) {
             throw new \DomainException('Montant invalide.');
         }
-        $session = null;
-        if (!$viaGateway && $method->needsCashSession()) {
+        $session = $sessionId ? ['id' => $sessionId] : null;   // caisse imposée (ex. caisse du livreur)
+        if (!$session && !$viaGateway && $method->needsCashSession()) {
             $session = (new CashService())->current(Auth::id());
             if (!$session) {
                 throw new \DomainException('Ouvrez votre caisse avant d\'encaisser.');
@@ -68,7 +68,7 @@ final class PaymentService
      * @param list<array{method:string,amount:mixed,reference?:string}> $lines
      * @return array{receipt:string,ids:list<int>}
      */
-    public function recordMixed(int $clientId, array $lines, ?int $orderId = null, ?int $invoiceId = null): array
+    public function recordMixed(int $clientId, array $lines, ?int $orderId = null, ?int $invoiceId = null, ?int $sessionId = null): array
     {
         $clean = [];
         foreach ($lines as $l) {
@@ -85,12 +85,12 @@ final class PaymentService
         if (!$clean) {
             throw new \DomainException('Saisissez au moins un montant.');
         }
-        return Database::transaction(function () use ($clientId, $clean, $orderId, $invoiceId): array {
+        return Database::transaction(function () use ($clientId, $clean, $orderId, $invoiceId, $sessionId): array {
             $receipt = Numbering::next('receipt', 'RC-%d-%06d');
             $group = count($clean) > 1 ? 'MX-' . strtoupper(bin2hex(random_bytes(4))) : null;
             $ids = [];
             foreach ($clean as [$method, $amount, $ref]) {
-                $ids[] = $this->record($clientId, $method, $amount, $orderId, $invoiceId, $ref, false, $group, $receipt);
+                $ids[] = $this->record($clientId, $method, $amount, $orderId, $invoiceId, $ref, false, $group, $receipt, $sessionId);
             }
             return ['receipt' => $receipt, 'ids' => $ids];
         });

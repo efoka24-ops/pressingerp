@@ -11,6 +11,7 @@ use App\Domain\PaymentMethod;
 use App\Domain\ServiceLevel;
 use App\Services\Audit;
 use App\Services\Authorizer;
+use App\Services\DeliveryService;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\PricingService;
@@ -85,12 +86,17 @@ final class OrderController extends Controller
     public function create(): void
     {
         $client = null;
-        if ($id = $this->int('client')) {
+        $collect = null;
+        if ($cid = $this->int('collecte')) {
+            $collect = Database::one("SELECT * FROM deliveries WHERE id = ? AND kind = 'collect' AND status = 'collecte' AND order_id IS NULL" . Auth::scopeSql('agency_id'), [$cid]) ?? $this->fail('Cette collecte n\'est pas disponible (déjà traitée, ou pas encore collectée).', '/livraisons');
+        }
+        if ($id = $this->int('client') ?: (int)($collect['client_id'] ?? 0)) {
             $client = Database::one('SELECT id, code, name, phone, is_vip, type, preferences FROM clients WHERE id = ?', [$id]);
         }
         $this->view('orders/create', [
             'title'    => 'Nouvelle commande',
             'client'   => $client,
+            'collect'  => $collect,
             'articles' => $this->articlesWithPrices((int)($client['id'] ?? 0)),
             'levels'   => ServiceLevel::cases(),
             'methods'  => PaymentMethod::counter(),
@@ -115,6 +121,9 @@ final class OrderController extends Controller
     {
         try {
             $id = (new OrderService())->create($_POST, Uploads::normalize($_FILES['photos'] ?? []));
+            if ($cid = $this->int('collecte_id')) {
+                DeliveryService::linkCollectToOrder($cid, $id);
+            }
         } catch (\DomainException $e) {
             $this->fail($e->getMessage());
         }
@@ -167,6 +176,7 @@ final class OrderController extends Controller
             'garments' => Database::all('SELECT g.*, u.name operator FROM garments g LEFT JOIN users u ON u.id = g.assigned_to WHERE g.order_id = ? ORDER BY g.seq', [$o['id']]),
             'payments' => Database::all('SELECT p.*, u.name user FROM payments p LEFT JOIN users u ON u.id = p.user_id WHERE p.order_id = ? ORDER BY p.id', [$o['id']]),
             'messages' => Database::all('SELECT m.*, (SELECT GROUP_CONCAT(CONCAT(a.channel, ":", a.status) ORDER BY a.id SEPARATOR ", ") FROM message_attempts a WHERE a.message_id = m.id) attempts FROM messages m WHERE m.order_id = ? ORDER BY m.id DESC LIMIT 20', [$o['id']]),
+            'delivery' => Database::one("SELECT id, status, driver_id, slot_at FROM deliveries WHERE order_id = ? AND kind = 'deliver' ORDER BY id DESC LIMIT 1", [$o['id']]),
             'intents'  => Database::all('SELECT * FROM payment_intents WHERE order_id = ? ORDER BY id DESC LIMIT 10', [$o['id']]),
             'methods'  => PaymentMethod::counter(),
             'printLabels' => input('etiquettes') === '1',

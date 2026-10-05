@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\HttpException;
 use App\Domain\PaymentMethod;
 use App\Services\Audit;
 use App\Services\CashService;
@@ -80,6 +81,33 @@ final class CashController extends Controller
         $session = $cash->current(Auth::id()) ?? $this->fail('Aucune caisse ouverte.', '/caisse');
         try {
             $diff = $cash->close($session, array_map('intval', (array)($_POST['counted'] ?? [])), $this->str('justification'));
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Caisse clôturée' . ($diff !== 0 ? ' avec un écart de ' . money($diff, true) . ' (signalé à la direction).' : ' sans écart.'), '/caisse');
+    }
+
+    /** Un responsable clôture la caisse d'un autre agent (ex. livreur) de son agence. */
+    private function otherSession(int $id): array
+    {
+        $s = Database::one("SELECT * FROM cash_sessions WHERE id = ? AND status = 'ouverte'", [$id]) ?? throw new HttpException(404, 'Caisse ouverte introuvable.');
+        if (!Auth::canSeeAgency((int)$s['agency_id'])) {
+            throw new HttpException(404, 'Caisse ouverte introuvable.');
+        }
+        return $s;
+    }
+
+    public function closeOtherForm(string $id): void
+    {
+        $s = $this->otherSession((int)$id);
+        $this->view('cash/close', ['title' => 'Clôture de caisse', 'session' => $s, 'expected' => (new CashService())->expected($s), 'methods' => PaymentMethod::counter(), 'action' => '/caisse/' . $s['id'] . '/cloture']);
+    }
+
+    public function closeOther(string $id): void
+    {
+        $s = $this->otherSession((int)$id);
+        try {
+            $diff = (new CashService())->close($s, array_map('intval', (array)($_POST['counted'] ?? [])), $this->str('justification'));
         } catch (\DomainException $e) {
             $this->fail($e->getMessage());
         }

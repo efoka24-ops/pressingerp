@@ -127,6 +127,7 @@ final class OrderService
 
             $count = count($quote['lines']);
             MessageService::queueEvent('deposit', (int)$client['id'], ['numero' => $number, 'pieces' => $count . ' pièce' . ($count > 1 ? 's' : ''), 'date_promise' => date('d/m à H:i', strtotime($promised)), 'lien' => tracking_url($token)], $orderId);
+            DeliveryService::ensureForOrder($orderId);
             Audit::log('order.create', 'orders', $orderId, ['total' => $quote['total']] + (isset($opts['workstation_id']) ? ['hors_ligne' => true, 'poste' => (int)$opts['workstation_id']] : []));
             return $orderId;
         });
@@ -154,6 +155,7 @@ final class OrderService
         } elseif ($pending > 0 && $o['status'] === 'pret') {
             Database::update('orders', ['status' => 'en_atelier', 'ready_at' => null], 'id = :id', ['id' => $orderId]);
         }
+        DeliveryService::syncFromOrder($orderId);
     }
 
     /** Retrait (ou livraison) : encaisse le solde, clôt les pièces, crédite les points fidélité. */
@@ -165,7 +167,9 @@ final class OrderService
             if ($o['status'] !== 'pret') {
                 throw new \DomainException('La commande n\'est pas encore prête.');
             }
-            QualityGate::assertOrderReady($orderId);   // RG8 : aucune pièce remise sans contrôle qualité valide
+            if (Database::value("SELECT id FROM deliveries WHERE order_id = ? AND kind = 'deliver' AND status NOT IN ('livre') LIMIT 1", [$orderId])) {
+                throw new \DomainException('Cette commande a une livraison en cours : elle se clôture depuis la fiche de livraison (preuve et solde).');
+            }
             $balance = (int)$o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
             if ($balance > 0) {
                 if (!$method) {
@@ -173,20 +177,33 @@ final class OrderService
                 }
                 (new PaymentService())->record((int)$o['client_id'], $method, $balance, orderId: $orderId);
             }
-            Database::update('orders', [
-                'status'       => $o['delivery_address'] ? 'livre' : 'retire',
-                'picked_up_at' => now(),
-                'picked_up_by' => Auth::id() ?: null,
-            ], 'id = :id', ['id' => $orderId]);
-            foreach (Database::all('SELECT id FROM garments WHERE order_id = ?', [$orderId]) as $g) {
-                Database::update('garments', ['step' => Step::Retire->value, 'status' => GarmentStatus::Termine->value, 'updated_at' => now()], 'id = :id', ['id' => $g['id']]);
-                WorkflowService::log((int)$g['id'], Step::Retire, 'retrait');
-            }
-            LoyaltyService::award((int)$o['client_id'], (int)$o['total']);
-            $points = (int)Database::value('SELECT loyalty_points FROM clients WHERE id = ?', [$o['client_id']]);
-            MessageService::queueEvent('closed', (int)$o['client_id'], ['numero' => $o['number'], 'fidelite' => $points > 0 ? "Vos points fidélité : $points." : ''], $orderId);
-            Audit::log('order.pickup', 'orders', $orderId);
+            $this->finish($o, 'retire');
         });
+    }
+
+    /**
+     * Clôture une commande prête : contrôle qualité (RG8), statut final, pièces sorties, points fidélité, message de clôture.
+     * Appelée par le retrait au comptoir (« retire ») et par la livraison prouvée (« livre »), dans leur transaction.
+     */
+    public function finish(array $o, string $final): void
+    {
+        $orderId = (int)$o['id'];
+        if (!in_array($final, ['retire', 'livre'], true)) {
+            throw new \InvalidArgumentException('Statut final invalide.');
+        }
+        if ($o['status'] !== 'pret') {
+            throw new \DomainException('La commande n\'est pas encore prête.');
+        }
+        QualityGate::assertOrderReady($orderId);   // RG8 : aucune pièce remise sans contrôle qualité valide
+        Database::update('orders', ['status' => $final, 'picked_up_at' => now(), 'picked_up_by' => Auth::id() ?: null], 'id = :id', ['id' => $orderId]);
+        foreach (Database::all('SELECT id FROM garments WHERE order_id = ?', [$orderId]) as $g) {
+            Database::update('garments', ['step' => Step::Retire->value, 'status' => GarmentStatus::Termine->value, 'updated_at' => now()], 'id = :id', ['id' => $g['id']]);
+            WorkflowService::log((int)$g['id'], Step::Retire, $final === 'livre' ? 'livraison' : 'retrait');
+        }
+        LoyaltyService::award((int)$o['client_id'], (int)$o['total']);
+        $points = (int)Database::value('SELECT loyalty_points FROM clients WHERE id = ?', [$o['client_id']]);
+        MessageService::queueEvent('closed', (int)$o['client_id'], ['numero' => $o['number'], 'fidelite' => $points > 0 ? "Vos points fidélité : $points." : ''], $orderId);
+        Audit::log($final === 'livre' ? 'order.delivered' : 'order.pickup', 'orders', $orderId);
     }
 
     /**

@@ -17,6 +17,7 @@ $tone = ['critical' => 'red', 'warn' => 'orange', 'info' => ''];
           <?php if ($a['ack_at']): ?><div class="small muted">Pris en compte <?= dt($a['ack_at'], 'd/m H:i') ?></div><?php endif ?>
           <?php if ($a['subject_type'] === 'garment'): ?><a class="small" href="/scan?code=<?= urlencode((string)($codes[(int)$a['subject_id']] ?? '')) ?>">voir la pièce</a>
           <?php elseif ($a['subject_type'] === 'order'): ?><a class="small" href="/commandes/<?= (int)$a['subject_id'] ?>">voir la commande</a>
+          <?php elseif ($a['subject_type'] === 'delivery'): ?><a class="small" href="/livraisons/<?= (int)$a['subject_id'] ?>">voir la livraison</a>
           <?php elseif ($a['subject_type'] === 'step'): ?><a class="small" href="/production">tableau atelier</a><?php endif ?></td>
         <td class="small"><?= e($a['target_role']) ?></td>
         <td class="mono small"><?= dt($a['opened_at'], 'd/m H:i') ?></td>

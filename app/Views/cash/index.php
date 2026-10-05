@@ -1,4 +1,5 @@
-<?php use App\Domain\PaymentMethod; ?>
+<?php use App\Core\Auth;
+use App\Domain\PaymentMethod; ?>
 <div class="head">
   <span class="mono small muted">06</span><h1>Caisse &amp; Finance</h1>
   <div class="actions"><?php if ($session): ?><a class="btn dark" href="/caisse/cloture">Clôturer ma caisse</a><?php endif ?></div>
@@ -58,7 +59,7 @@
       <?php foreach ($sessions as $cs): ?>
         <div class="kv">
           <span><?= e($cs['agency']) ?> · <?= e($cs['label']) ?><br><small><?= e($cs['user']) ?> · <?= money($cs['cashed']) ?> encaissés</small></span>
-          <?php if ($cs['status'] === 'ouverte'): ?><span class="muted">Ouverte</span>
+          <?php if ($cs['status'] === 'ouverte'): ?><span class="muted">Ouverte<?php if ((int)$cs['user_id'] !== Auth::id() && Auth::can('cash', 'validate')): ?> · <a href="/caisse/<?= (int)$cs['id'] ?>/cloture">Clôturer</a><?php endif ?></span>
           <?php elseif ((int)$cs['diff'] !== 0): ?><span class="red" title="<?= e($cs['justification']) ?>">Écart <?= money($cs['diff']) ?></span>
           <?php else: ?><span class="green">Clôturée · 0</span><?php endif ?>
         </div>

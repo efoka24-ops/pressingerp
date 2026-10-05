@@ -1,6 +1,6 @@
 <div class="head"><a class="small" href="/caisse">← Caisse</a><h1>Clôture · <?= e($session['label']) ?></h1><span class="small muted">ouverte à <?= dt($session['opened_at'], 'H:i') ?> · fond <?= money($session['opening_float']) ?></span></div>
 
-<form method="post" action="/caisse/cloture" class="card" style="max-width:820px" id="close-form">
+<form method="post" action="<?= e($action ?? '/caisse/cloture') ?>" class="card" style="max-width:820px" id="close-form">
   <?= csrf_field() ?>
   <table class="t" style="font-size:14px">
     <thead><tr><th>Mode</th><th class="num">Théorique</th><th class="num" style="width:200px">Compté / relevé</th><th class="num">Écart</th></tr></thead>

@@ -33,6 +33,20 @@ final class CashService
         return $id;
     }
 
+    /**
+     * Caisse du livreur : ouverte automatiquement (fond 0) à sa première perception, puis clôturée par un responsable
+     * comme toute caisse (sans tolérance d'écart). L'argent encaissé en tournée n'entre jamais dans la caisse du comptoir.
+     */
+    public function courierSession(int $driverId, int $agencyId): array
+    {
+        $s = $this->current($driverId);
+        if (!$s) {
+            $this->open($driverId, $agencyId, 0, 'Livraisons ' . date('d/m'));
+            $s = $this->current($driverId);
+        }
+        return $s;
+    }
+
     /** Montants théoriques par mode : encaissements de la session (+ fond de caisse − dépenses pour les espèces). */
     public function expected(array $session): array
     {

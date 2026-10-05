@@ -67,6 +67,7 @@ final class TrackingController extends Controller
         }
         $fee = (int)Config::get('delivery_fee', 0);
         Database::update('orders', ['delivery_address' => $address, 'delivery_fee' => $fee, 'total' => (int)$o['total'] + $fee], 'id = :id', ['id' => $o['id']]);
+        \App\Services\DeliveryService::ensureForOrder((int)$o['id']);
         Notifier::queue((int)$o['client_id'], "Pressing : livraison de {$o['number']} confirmée à l'adresse : $address. Frais : " . money($fee, true) . '.');
         Audit::log('tracking.delivery', 'orders', (int)$o['id']);
         $this->ok('Livraison demandée. L\'agence vous appellera pour convenir du créneau.', '/suivi/' . $token);

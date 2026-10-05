@@ -79,7 +79,6 @@ final class DeliveryService
             throw new \DomainException('Cette collecte n\'est pas encore marquée « collectée » par le livreur.');
         }
         Database::update('deliveries', ['order_id' => $orderId, 'status' => 'en_traitement'], 'id = :id', ['id' => $collectId]);
-        Database::run('UPDATE orders SET delivery_address = COALESCE(delivery_address, ?) WHERE id = ?', [$d['address'], $orderId]);
         self::event($collectId, 'en_traitement', 'Commande ' . Database::value('SELECT number FROM orders WHERE id = ?', [$orderId]) . ' créée');
     }
 

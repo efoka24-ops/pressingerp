@@ -44,8 +44,9 @@
         </div>
       </div>
       <div class="kv"><span>Date promise</span><span class="mono" id="q-promised">—</span></div>
-      <label class="check"><input type="checkbox" name="delivery" value="1" data-toggle="#delivery-box"<?= checked((bool)old('delivery')) ?>> Livraison à domicile</label>
-      <div class="field" id="delivery-box"><label>Adresse de livraison</label><input class="input" name="delivery_address" value="<?= e(old('delivery_address')) ?>"></div>
+      <label class="check"><input type="checkbox" name="delivery" value="1" data-toggle="#delivery-box"<?= checked((bool)old('delivery', $collect ?? null)) ?>> Livraison à domicile</label>
+      <?php if (!empty($collect)): ?><input type="hidden" name="collecte_id" value="<?= (int)$collect['id'] ?>"><div class="small muted">Suite de la collecte du <?= dt($collect['created_at'], 'd/m') ?> à <?= e($collect['address']) ?> : la commande sera rattachée à cette collecte.</div><?php endif ?>
+      <div class="field" id="delivery-box"><label>Adresse de livraison</label><input class="input" name="delivery_address" value="<?= e(old('delivery_address', $collect['address'] ?? '')) ?>"></div>
       <div class="field"><label>Note pour l'atelier</label><textarea class="input" name="notes" rows="2" style="min-height:56px"><?= e(old('notes')) ?></textarea></div>
     </div>
 

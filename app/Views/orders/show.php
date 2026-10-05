@@ -80,7 +80,16 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
       <?php endif ?>
     </div>
 
-    <?php if ($o['status'] === 'pret'): ?>
+    <?php if ($delivery): ?>
+    <div class="card pad">
+      <h2>Livraison à domicile</h2>
+      <div class="kv"><span>État</span><span class="right"><?= e(\App\Services\DeliveryService::STATUS[$delivery['status']] ?? $delivery['status']) ?></span></div>
+      <?php if ($delivery['slot_at']): ?><div class="kv"><span>Créneau</span><span class="right"><?= dt($delivery['slot_at'], 'd/m H:i') ?></span></div><?php endif ?>
+      <?php if (\App\Core\Auth::can('delivery')): ?><a class="btn" href="/livraisons/<?= (int)$delivery['id'] ?>">Ouvrir la fiche de livraison</a><?php endif ?>
+    </div>
+    <?php endif ?>
+
+    <?php if ($o['status'] === 'pret' && !($delivery && $delivery['status'] !== 'livre')): ?>
       <form method="post" action="/commandes/<?= $o['id'] ?>/retrait" class="card pad form">
         <?= csrf_field() ?>
         <h2><?= $o['delivery_address'] ? 'Remise au livreur / livraison' : 'Retrait client' ?></h2>

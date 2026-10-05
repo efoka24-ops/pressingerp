@@ -93,11 +93,11 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T094 Tests : consentement retiré, client anonyme
 
 ## Phase 8 — Livraison (US7)
-- [ ] T100 Migration `deliveries`, `delivery_proofs` (append-only), rôle livreur
-- [ ] T101 Statuts À collecter → Livré + « Non livré », affectation, tournée
-- [ ] T102 Preuve obligatoire (RG20) et solde à percevoir (RG21)
-- [ ] T103 Écran livreur mobile
-- [ ] T104 Tests : « Livré » sans preuve refusé
+- [x] T100 Migration `deliveries`, `delivery_proofs` (append-only), rôle livreur
+- [x] T101 Statuts À collecter → Livré + « Non livré », affectation, tournée
+- [x] T102 Preuve obligatoire (RG20) et solde à percevoir (RG21)
+- [x] T103 Écran livreur mobile
+- [x] T104 Tests : « Livré » sans preuve refusé
 
 ## Phase 9 — Non retirés (US9)
 - [ ] T110 `bin/reminders.php` : J+2, J+7, J+15 paramétrables, annulation au retrait

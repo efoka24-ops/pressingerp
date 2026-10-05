@@ -23,6 +23,7 @@ final class Module
         'bi'         => ['10', 'Business Intelligence', '/bi'],
         'admin'      => ['11', 'Administration', '/admin'],
         'pricing'    => ['12', 'Tarifs', '/tarifs'],
+        'delivery'   => ['13', 'Livraisons', '/livraisons'],
     ];
 
     private static array $badges = [];
