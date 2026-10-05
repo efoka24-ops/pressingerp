@@ -24,6 +24,15 @@
         <td class="num <?= $r['days_late'] > 60 ? 'red strong' : ($r['days_late'] ? 'orange' : 'muted') ?>"><?= $r['days_late'] ?> j</td>
         <td class="<?= $r['due_today'] ? 'red strong' : 'muted' ?>"><?= $r['due_today'] ? 'À relancer aujourd\'hui' : ($r['last_reminder'] ? e(ucfirst($r['last_reminder']['channel'])) . ' · ' . dt($r['last_reminder']['created_at'], 'd/m') : '—') ?></td>
         <td>
+          <details><summary class="small accent" style="cursor:pointer">Encaisser un versement</summary>
+            <form method="post" action="/recouvrement/encaisser" class="form" style="min-width:240px;padding-top:8px">
+              <?= csrf_field() ?><input type="hidden" name="client_id" value="<?= $r['id'] ?>">
+              <input class="input mono" type="number" min="1" name="amount" placeholder="Montant versé" required>
+              <select class="input" name="method"><option value="virement">Virement</option><option value="cheque">Chèque</option><option value="especes">Espèces</option><option value="orange">Orange Money</option><option value="mtn">MTN MoMo</option></select>
+              <input class="input mono" name="reference" placeholder="Référence">
+              <button class="btn sm primary">Répartir sur les factures (plus ancienne d'abord)</button>
+            </form>
+          </details>
           <details><summary class="small accent" style="cursor:pointer">Relancer</summary>
             <form method="post" action="/recouvrement/relance" class="form" style="min-width:240px;padding-top:8px">
               <?= csrf_field() ?><input type="hidden" name="client_id" value="<?= $r['id'] ?>">

@@ -47,6 +47,11 @@
       <label class="check"><input type="checkbox" name="delivery" value="1" data-toggle="#delivery-box"<?= checked((bool)old('delivery', $collect ?? null)) ?>> Livraison à domicile</label>
       <?php if (!empty($collect)): ?><input type="hidden" name="collecte_id" value="<?= (int)$collect['id'] ?>"><div class="small muted">Suite de la collecte du <?= dt($collect['created_at'], 'd/m') ?> à <?= e($collect['address']) ?> : la commande sera rattachée à cette collecte.</div><?php endif ?>
       <div class="field" id="delivery-box"><label>Adresse de livraison</label><input class="input" name="delivery_address" value="<?= e(old('delivery_address', $collect['address'] ?? '')) ?>"></div>
+      <details class="card pad"><summary class="small strong" style="cursor:pointer">Client en compte : dérogation au plafond d'encours</summary>
+        <div class="form" style="margin-top:10px"><div class="small muted">À remplir seulement si la commande est refusée pour dépassement du plafond.</div>
+          <div class="field"><label>Motif de la dérogation</label><input class="input" name="credit_override_reason" autocomplete="off"></div>
+          <?php if (!\App\Core\Auth::isManager()): ?><div class="row"><div class="field"><label>Responsable : identifiant</label><input class="input" name="auth_login" autocomplete="off"></div><div class="field"><label>Mot de passe</label><input class="input" type="password" name="auth_password" autocomplete="off"></div></div><?php endif ?>
+        </div></details>
       <div class="field"><label>Note pour l'atelier</label><textarea class="input" name="notes" rows="2" style="min-height:56px"><?= e(old('notes')) ?></textarea></div>
     </div>
 

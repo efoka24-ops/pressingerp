@@ -160,6 +160,10 @@ final class ClientController extends Controller
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->fail('Adresse e-mail invalide.');
         }
+        $niu = strtoupper(preg_replace('/\s+/', '', $this->str('niu')));
+        if ($type === 'pro' && $niu !== '' && !preg_match('/^[A-Z0-9]{6,30}$/', $niu)) {
+            $this->fail('NIU invalide : 6 à 30 lettres ou chiffres, sans espace.');
+        }
         $channel = in_array($this->str('preferred_channel'), ['sms', 'whatsapp', 'email'], true) ? $this->str('preferred_channel') : 'sms';
         return [
             'type'               => $type,
@@ -168,6 +172,7 @@ final class ClientController extends Controller
             'email'              => $email ?: null,
             'address'            => $this->str('address') ?: null,
             'is_vip'             => input('is_vip') ? 1 : 0,
+            'niu'                => $type === 'pro' ? ($niu ?: null) : null,
             'credit_limit'       => $type === 'pro' ? max(0, $this->int('credit_limit')) : 0,
             'payment_terms_days' => $type === 'pro' ? max(0, $this->int('payment_terms_days', 30)) : 0,
             'preferred_channel'  => $channel,

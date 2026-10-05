@@ -41,7 +41,7 @@ $r->post('/ouvrir-un-pressing', [AgencyRequestController::class, 'submit']);
 $r->get('/ouvrir-un-pressing/merci', [AgencyRequestController::class, 'thanks']);
 
 // Accueils
-$r->get('/', [HomeController::class, 'index'], 'auth');
+$r->get('/', [HomeController::class, 'index']);
 $r->get('/comptoir', [HomeController::class, 'counter'], 'counter');
 $r->get('/cockpit', [HomeController::class, 'cockpit'], 'cockpit');
 $r->get('/recherche', [HomeController::class, 'search'], 'auth');
@@ -123,6 +123,13 @@ $r->get('/commercial/factures', [CommercialController::class, 'invoices'], 'comm
 $r->post('/commercial/factures/generer', [CommercialController::class, 'generate'], 'commercial');
 $r->get('/commercial/factures/{id}', [CommercialController::class, 'invoice'], 'commercial');
 $r->post('/commercial/factures/{id}/paiement', [CommercialController::class, 'payInvoice'], 'commercial');
+$r->post('/commercial/factures/{id}/avoir', [CommercialController::class, 'creditNote'], 'commercial:validate');
+$r->get('/commercial/devis', [CommercialController::class, 'quotes'], 'commercial');
+$r->get('/commercial/devis/nouveau', [CommercialController::class, 'quoteForm'], 'commercial:create');
+$r->post('/commercial/devis', [CommercialController::class, 'storeQuote'], 'commercial:create');
+$r->get('/commercial/devis/{id}', [CommercialController::class, 'quote'], 'commercial');
+$r->post('/commercial/devis/{id}/decision', [CommercialController::class, 'decideQuote'], 'commercial:update');
+$r->post('/recouvrement/encaisser', [CommercialController::class, 'settle'], 'commercial:update');
 $r->get('/recouvrement', [CommercialController::class, 'receivables'], 'commercial');
 $r->post('/recouvrement/relance', [CommercialController::class, 'remind'], 'commercial');
 

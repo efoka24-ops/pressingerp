@@ -198,3 +198,10 @@ test('pages : connexion sans choix d\'agence, demande d\'ouverture publique, exa
     ok(str_contains($html, 'Pressing Visible Test') && str_contains($html, 'Valider et envoyer les identifiants'));
     ok(str_contains(render_page('/admin'), '/admin/demandes'));
 });
+
+test('accueil public : un client qui ouvre le site tombe sur le suivi de commande, pas sur la connexion du personnel', function () {
+    Auth::actAs(null);
+    unset($_SESSION['uid']);
+    $html = render_page('/');
+    ok(str_contains($html, 'Où en est mon linge') && str_contains($html, 'name="number"') && str_contains($html, 'name="phone"') && str_contains($html, '/login'));
+});

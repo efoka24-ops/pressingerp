@@ -14,7 +14,11 @@ final class HomeController extends Controller
 {
     public function index(): void
     {
-        redirect(Auth::role()?->home() ?? '/login');
+        // Personnel connecté : son accueil. Visiteur (client) : la page de suivi de commande.
+        if (Auth::role()) {
+            redirect(Auth::role()->home());
+        }
+        $this->view('home/landing', ['title' => 'Suivre ma commande'], 'public');
     }
 
     /** Accueil de l'agent de comptoir */

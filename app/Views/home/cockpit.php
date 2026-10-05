@@ -84,8 +84,21 @@ $ob = $objectives;
       <div class="card-h"><h2>Alertes managériales</h2><span class="mono small muted"><?= count($alerts) ?> active<?= count($alerts) > 1 ? 's' : '' ?></span></div>
       <?php if (!$alerts): ?><span class="small muted">Rien à signaler.</span><?php endif ?>
       <div class="alerts">
-        <?php foreach ($alerts as [$tone, $title, $detail, $href]): ?>
-          <a href="<?= e($href) ?>"><?= dot($tone) ?><div><b><?= e($title) ?></b><span class="muted"><?= e($detail) ?></span></div></a>
+        <?php
+        // Le lien n'est proposé que si le profil a accès à la page visée
+        $reach = function (string $href): bool {
+            if (str_starts_with($href, '/recouvrement')) {
+                return can('commercial');
+            }
+            foreach (\App\Domain\Module::ALL as $code => [, , $url]) {
+                if (str_starts_with($href, $url)) {
+                    return can($code);
+                }
+            }
+            return true;
+        };
+        foreach ($alerts as [$tone, $title, $detail, $href]): ?>
+          <a<?= $reach($href) ? ' href="' . e($href) . '"' : '' ?>><?= dot($tone) ?><div><b><?= e($title) ?></b><span class="muted"><?= e($detail) ?></span></div></a>
         <?php endforeach ?>
       </div>
     </div>

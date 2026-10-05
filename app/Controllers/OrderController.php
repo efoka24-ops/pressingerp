@@ -127,7 +127,12 @@ final class OrderController extends Controller
     public function store(): void
     {
         try {
-            $id = (new OrderService())->create($_POST, Uploads::normalize($_FILES['photos'] ?? []));
+            $opts = [];
+            if (trim($this->str('credit_override_reason')) !== '') {
+                // Dérogation au plafond d'encours : le responsable s'identifie sur ce poste s'il n'est pas déjà connecté
+                $opts['credit_override'] = ['reason' => $this->str('credit_override_reason'), 'authoriser' => Authorizer::fromRequest(Auth::agencyId())];
+            }
+            $id = (new OrderService())->create($_POST, Uploads::normalize($_FILES['photos'] ?? []), $opts);
             if ($cid = $this->int('collecte_id')) {
                 DeliveryService::linkCollectToOrder($cid, $id);
             }

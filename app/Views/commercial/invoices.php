@@ -13,7 +13,7 @@
     <tbody>
     <?php foreach ($invoices as $i): $late = $i['status'] !== 'payee' && $i['due_date'] < date('Y-m-d'); ?>
       <tr class="<?= $late ? 'alert' : '' ?>">
-        <td class="mono"><a class="row-link" href="/commercial/factures/<?= $i['id'] ?>"><?= e($i['number']) ?></a></td>
+        <td class="mono"><a class="row-link" href="/commercial/factures/<?= $i['id'] ?>"><?= e($i['number']) ?></a><?= $i['kind'] === 'avoir' ? ' <span class="badge">Avoir</span>' : '' ?></td>
         <td><?= e($i['client']) ?></td>
         <td><?= e(month_name(substr($i['period_start'], 0, 7))) ?></td>
         <td class="num"><?= money($i['total']) ?></td>

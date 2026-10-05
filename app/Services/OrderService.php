@@ -55,10 +55,19 @@ final class OrderService
         // Clients pros sous contrat : en compte, avec contrôle du plafond d'encours
         $onAccount = $client['type'] === 'pro'
             && (bool)Database::value('SELECT COUNT(*) FROM contracts WHERE client_id = ? AND active = 1 AND CURDATE() BETWEEN start_date AND end_date', [$client['id']]);
+        $override = null;
         if ($onAccount && (int)$client['credit_limit'] > 0) {
             $outstanding = ClientService::outstanding((int)$client['id']);
-            if ($outstanding + $quote['total'] > (int)$client['credit_limit'] && !Auth::isManager()) {
-                throw new \DomainException('Plafond d\'encours dépassé (' . money($outstanding) . ' / ' . money($client['credit_limit']) . ') : validation d\'un responsable requise.');
+            if ($outstanding + $quote['total'] > (int)$client['credit_limit'] && (bool)SettingsService::get('credit.block_over_limit', 1)) {
+                // RG16 : commande bloquée au-delà du plafond, sauf dérogation d'un responsable, motivée et tracée
+                $ov = $opts['credit_override'] ?? null;
+                if (!$ov || empty($ov['authoriser'])) {
+                    throw new \DomainException('Plafond d\'encours dépassé (' . money($outstanding) . ' + ' . money($quote['total']) . ' / ' . money($client['credit_limit']) . ' FCFA) : commande bloquée. Un responsable peut accorder une dérogation motivée.');
+                }
+                if (mb_strlen(trim((string)($ov['reason'] ?? ''))) < 8) {
+                    throw new \DomainException('Motif de la dérogation au plafond obligatoire (8 caractères minimum).');
+                }
+                $override = ['outstanding' => $outstanding, 'limit' => (int)$client['credit_limit'], 'reason' => trim((string)$ov['reason']), 'authoriser' => $ov['authoriser']];
             }
         }
 
@@ -72,7 +81,7 @@ final class OrderService
             $paths[$index] = Uploads::image($file, 'piece');
         }
 
-        $orderId = Database::transaction(function () use ($client, $level, $quote, $onAccount, $delivery, $address, $in, $paths, $opts, $createdTs, $createdAt, $agencyId, $userId): int {
+        $orderId = Database::transaction(function () use ($client, $level, $quote, $onAccount, $delivery, $address, $in, $paths, $opts, $createdTs, $createdAt, $agencyId, $userId, $override): int {
             $number = $opts['number'] ?? Numbering::next('order', 'PR-%d-%06d');
             $token = $opts['tracking_token'] ?? bin2hex(random_bytes(16));
             $promised = $level->promisedAt($createdTs);
@@ -128,6 +137,14 @@ final class OrderService
             $count = count($quote['lines']);
             MessageService::queueEvent('deposit', (int)$client['id'], ['numero' => $number, 'pieces' => $count . ' pièce' . ($count > 1 ? 's' : ''), 'date_promise' => date('d/m à H:i', strtotime($promised)), 'lien' => tracking_url($token)], $orderId);
             DeliveryService::ensureForOrder($orderId);
+            if ($override) {
+                Database::insert('credit_overrides', [
+                    'client_id' => $client['id'], 'order_id' => $orderId, 'outstanding' => $override['outstanding'], 'order_total' => $quote['total'], 'credit_limit' => $override['limit'],
+                    'reason' => mb_substr($override['reason'], 0, 255), 'authorised_by' => (int)$override['authoriser']['id'], 'requested_by' => $userId ?: null, 'created_at' => $createdAt,
+                ]);
+                Audit::log('order.credit_override', 'orders', $orderId, ['authorised_by' => (int)$override['authoriser']['id'], 'requested_by' => $userId, 'outstanding' => $override['outstanding'], 'limit' => $override['limit']], null, null, $override['reason']);
+                AlertService::safe(fn() => AlertService::raise('credit_override', 'cro:' . $orderId, "Dérogation au plafond d'encours de {$client['name']} : " . money($override['outstanding'] + $quote['total']) . ' FCFA pour un plafond de ' . money($override['limit']) . ' (' . $override['reason'] . ').', 'order', $orderId, $agencyId));
+            }
             Audit::log('order.create', 'orders', $orderId, ['total' => $quote['total']] + (isset($opts['workstation_id']) ? ['hors_ligne' => true, 'poste' => (int)$opts['workstation_id']] : []));
             return $orderId;
         });

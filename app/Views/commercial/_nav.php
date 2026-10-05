@@ -6,5 +6,6 @@
 <nav class="subnav">
   <a href="/commercial" class="<?= $path === '/commercial' ? 'on' : '' ?>">Contrats</a>
   <a href="/commercial/factures" class="<?= str_starts_with((string)$path, '/commercial/factures') ? 'on' : '' ?>">Facturation</a>
+  <a href="/commercial/devis" class="<?= str_starts_with((string)$path, '/commercial/devis') ? 'on' : '' ?>">Devis</a>
   <a href="/recouvrement" class="<?= $path === '/recouvrement' ? 'on' : '' ?>">Recouvrement</a>
 </nav>

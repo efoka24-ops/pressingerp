@@ -7,7 +7,10 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\HttpException;
 use App\Domain\PaymentMethod;
+use App\Domain\ServiceLevel;
 use App\Services\Audit;
+use App\Services\Authorizer;
+use App\Services\QuoteService;
 use App\Services\ClientService;
 use App\Services\InvoiceService;
 use App\Services\PaymentService;
@@ -89,12 +92,17 @@ final class CommercialController extends Controller
 
     public function generate(): void
     {
+        $svc = new InvoiceService();
         try {
-            $n = (new InvoiceService())->generate($this->str('month'));
+            $n = $svc->generate($this->str('month'));
         } catch (\DomainException $e) {
             $this->fail($e->getMessage());
         }
-        $this->ok($n ? "$n facture(s) générée(s)." : 'Aucune commande en compte à facturer sur ce mois.', '/commercial/factures');
+        $msg = $n ? "$n facture(s) générée(s)." : 'Aucune commande en compte à facturer sur ce mois.';
+        if ($svc->skipped) {
+            $msg .= ' Non facturés : ' . implode(' ; ', $svc->skipped) . '.';
+        }
+        $this->ok($msg, '/commercial/factures');
     }
 
     public function invoice(string $id): void
@@ -104,6 +112,9 @@ final class CommercialController extends Controller
         $this->view('commercial/invoice', [
             'title'    => $i['number'],
             'i'        => $i,
+            'agency'   => (string)Database::value('SELECT name FROM agencies WHERE id = ?', [$i['agency_id']]),
+            'refNumber' => (string)Database::value('SELECT number FROM invoices WHERE id = ?', [$i['ref_invoice_id']]),
+            'credits'  => Database::all("SELECT id, number, total, reason FROM invoices WHERE ref_invoice_id = ? AND kind = 'avoir' ORDER BY id", [$i['id']]),
             'orders'   => Database::all('SELECT o.*, (SELECT COUNT(*) FROM garments g WHERE g.order_id = o.id) pcs FROM orders o WHERE o.invoice_id = ? ORDER BY o.created_at', [$i['id']]),
             'payments' => Database::all('SELECT * FROM payments WHERE invoice_id = ? ORDER BY created_at', [$i['id']]),
             'methods'  => [PaymentMethod::Virement, PaymentMethod::Cheque, PaymentMethod::Especes, PaymentMethod::Orange, PaymentMethod::Mtn],
@@ -120,6 +131,72 @@ final class CommercialController extends Controller
             $this->fail($e->getMessage());
         }
         $this->ok('Règlement enregistré.', '/commercial/factures/' . $i['id']);
+    }
+
+    public function creditNote(string $id): void
+    {
+        $i = Database::one('SELECT id, agency_id FROM invoices WHERE id = ?', [(int)$id]) ?? throw new HttpException(404);
+        try {
+            $authoriser = Authorizer::fromRequest((int)$i['agency_id'] ?: null);
+            $cn = (new InvoiceService())->creditNote((int)$i['id'], $this->int('amount'), $this->str('reason'), $authoriser);
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Avoir émis.', '/commercial/factures/' . $cn);
+    }
+
+    /** Un versement du client réparti sur ses factures ouvertes, de la plus ancienne à la plus récente. */
+    public function settle(): void
+    {
+        $method = PaymentMethod::tryFrom($this->str('method')) ?? $this->fail('Mode de paiement invalide.');
+        try {
+            $parts = (new InvoiceService())->settle($this->int('client_id'), $this->int('amount'), $method, $this->str('reference') ?: null);
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Versement réparti : ' . implode(', ', array_map(fn($p) => $p['invoice'] . ' ' . money($p['amount']), $parts)) . '.', '/recouvrement');
+    }
+
+    public function quotes(): void
+    {
+        QuoteService::expireOld();
+        $this->view('commercial/quotes', ['title' => 'Devis', 'quotes' => Database::all('SELECT q.*, c.name client FROM quotes q JOIN clients c ON c.id = q.client_id ORDER BY q.id DESC LIMIT 200')]);
+    }
+
+    public function quoteForm(): void
+    {
+        $this->view('commercial/quote_form', [
+            'title'    => 'Nouveau devis',
+            'clients'  => Database::all('SELECT id, name, phone FROM clients ORDER BY name LIMIT 500'),
+            'articles' => Database::all('SELECT id, name FROM articles WHERE active = 1 ORDER BY sort, name'),
+            'levels'   => ServiceLevel::cases(),
+        ]);
+    }
+
+    public function storeQuote(): void
+    {
+        try {
+            $id = (new QuoteService())->create($this->int('client_id'), $this->str('service_level', 'standard'), (array)($_POST['lines'] ?? []), $this->int('valid_days', 15), $this->str('notes'));
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Devis établi.', '/commercial/devis/' . $id);
+    }
+
+    public function quote(string $id): void
+    {
+        $q = Database::one('SELECT q.*, c.name client, a.name agency FROM quotes q JOIN clients c ON c.id = q.client_id JOIN agencies a ON a.id = q.agency_id WHERE q.id = ?', [(int)$id]) ?? throw new HttpException(404, 'Devis introuvable');
+        $this->view('commercial/quote', ['title' => $q['number'], 'q' => $q, 'lines' => Database::all('SELECT * FROM quote_lines WHERE quote_id = ? ORDER BY id', [$q['id']])]);
+    }
+
+    public function decideQuote(string $id): void
+    {
+        try {
+            (new QuoteService())->decide((int)$id, $this->str('decision'), $this->str('note'));
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Réponse enregistrée.', '/commercial/devis/' . (int)$id);
     }
 
     public function receivables(): void

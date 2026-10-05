@@ -105,11 +105,11 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T112 Tests de calendrier
 
 ## Phase 10 — Recouvrement et facturation (US10)
-- [ ] T120 TVA et NIU sur factures, numérotation continue (D5), après avis du comptable
-- [ ] T121 Blocage des commandes en compte au-delà du plafond, dérogation tracée (RG16)
-- [ ] T122 Avoirs, devis
-- [ ] T123 Rapprochement des paiements partiels (SE17)
-- [ ] T124 Tests des bornes de balance âgée (30/31, 60/61, 90/91)
+- [x] T120 TVA et NIU sur factures, numérotation continue (D5), après avis du comptable
+- [x] T121 Blocage des commandes en compte au-delà du plafond, dérogation tracée (RG16)
+- [x] T122 Avoirs, devis
+- [x] T123 Rapprochement des paiements partiels (SE17)
+- [x] T124 Tests des bornes de balance âgée (30/31, 60/61, 90/91)
 
 ## Phase 11 — Marketing (US11)
 - [ ] T130 Seuils de segments en paramètres (spec A8) ; statut « à vérifier »

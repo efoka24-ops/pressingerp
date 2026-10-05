@@ -24,6 +24,7 @@ $isPro = $v('type', 'particulier') === 'pro';
   </div>
   <div class="field"><label>Adresse / quartier</label><input class="input" name="address" value="<?= e($v('address')) ?>" placeholder="Bonamoussadi, rue des Palmiers"></div>
   <div id="pro" class="row" <?= $isPro ? '' : 'hidden' ?>>
+    <div class="field"><label>NIU du client (factures)</label><input class="input mono" name="niu" maxlength="30" value="<?= e($v('niu')) ?>" placeholder="M012345678901X"></div>
     <div class="field"><label>Plafond d'encours (FCFA)</label><input class="input mono" type="number" min="0" step="10000" name="credit_limit" value="<?= e($v('credit_limit', 0)) ?>"></div>
     <div class="field"><label>Délai de paiement (jours)</label><input class="input mono" type="number" min="0" name="payment_terms_days" value="<?= e($v('payment_terms_days', 30)) ?>"></div>
   </div>

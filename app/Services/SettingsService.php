@@ -22,6 +22,7 @@ final class SettingsService
         'reminder.days'           => ['Relances non retirés (jours, séparés par des virgules)', 'text', '2,7,15', 'Relances'],
         'reminder.manager_after'  => ['Alerte manager au-delà de (jours de non-retrait)', 'int', 15, 'Relances'],
         'vip.annual_threshold'    => ['Seuil VIP : CA annuel (FCFA)', 'int', 1500000, 'CRM'],
+        'invoice.require_client_niu' => ['Exiger le NIU d\'un client professionnel pour le facturer (après avis du comptable)', 'bool', 0, 'Recouvrement'],
         'credit.block_over_limit' => ['Bloquer les commandes en compte au-delà du plafond', 'bool', 1, 'Recouvrement'],
         'compensation.max_factor' => ['Indemnisation maximale (× prix du service)', 'int', 10, 'Qualité'],
     ];
