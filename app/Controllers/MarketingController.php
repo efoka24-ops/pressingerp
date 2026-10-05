@@ -8,6 +8,8 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Services\Audit;
 use App\Services\MarketingService;
+use App\Services\ScenarioService;
+use App\Services\SettingsService;
 
 final class MarketingController extends Controller
 {
@@ -25,6 +27,9 @@ final class MarketingController extends Controller
             'labels'    => MarketingService::SEGMENTS,
             'channels'  => MarketingService::CHANNELS,
             'campaigns' => $campaigns,
+            'scenarios' => Database::all('SELECT * FROM marketing_scenarios ORDER BY code'),
+            'validated' => (bool)SettingsService::get('seg.validated', 0),
+            'th'        => MarketingService::thresholds(),
             'loyalty'   => Config::get('loyalty'),
             'points'    => (int)Database::value('SELECT COALESCE(SUM(loyalty_points), 0) FROM clients'),
             'referrals' => (int)Database::value('SELECT COUNT(*) FROM clients WHERE referred_by IS NOT NULL AND created_at > NOW() - INTERVAL 90 DAY'),
@@ -48,6 +53,16 @@ final class MarketingController extends Controller
         ]);
         Audit::log('campaign.create', 'campaigns', $id);
         $this->ok('Campagne créée.', '/marketing');
+    }
+
+    public function scenario(string $code): void
+    {
+        try {
+            ScenarioService::update($code, $this->str('body'), $this->int('cooldown_days', 90), $this->str('active') === '1');
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Scénario enregistré.', '/marketing');
     }
 
     public function send(string $id): void

@@ -136,6 +136,7 @@ $r->post('/recouvrement/relance', [CommercialController::class, 'remind'], 'comm
 // 08 Marketing & Fidélité
 $r->get('/marketing', [MarketingController::class, 'index'], 'marketing');
 $r->post('/marketing/campagnes', [MarketingController::class, 'store'], 'marketing');
+$r->post('/marketing/scenarios/{code}', [MarketingController::class, 'scenario'], 'marketing:update');
 $r->post('/marketing/campagnes/{id}/envoyer', [MarketingController::class, 'send'], 'marketing:validate');
 
 // 09 Stocks

@@ -1,5 +1,9 @@
 <div class="head"><span class="mono small muted">08</span><h1>Marketing &amp; Fidélité</h1><span class="small muted"><?= $queue ?> message(s) en file d'envoi</span></div>
 
+<?php if (!$validated): ?>
+  <div class="flash warn">Seuils de segmentation <b>à vérifier</b> : nouveau &lt; <?= (int)$th['new_days'] ?> j · à risque dès <?= (int)$th['at_risk_days'] ?> j · perdu au-delà de <?= (int)$th['lost_days'] ?> j · VIP dès <?= money($th['vip']) ?> FCFA/an · régulier dès <?= (int)$th['regular_orders'] ?> commandes/an · fort panier dès <?= money($th['basket_high']) ?>.
+    Ces valeurs sont provisoires, la direction doit les confirmer<?php if (can('admin', 'update')): ?> (<a href="/admin/parametres">Paramètres &gt; Segmentation</a>, puis cocher « validés »)<?php endif ?>.</div>
+<?php endif ?>
 <div class="split left">
   <div class="stack">
     <div class="card pad">
@@ -46,6 +50,19 @@
         </tbody>
       </table>
       <?php endif ?>
+    </div>
+
+    <div class="card pad">
+      <div class="card-h"><h2>Scénarios automatiques</h2><span class="small muted">évalués chaque jour · uniquement vers les clients consentants</span></div>
+      <?php foreach ($scenarios as $sc): $canEdit = can('marketing', 'update'); ?>
+        <<?= $canEdit ? 'form method="post" action="/marketing/scenarios/' . e($sc['code']) . '"' : 'div' ?> class="form" style="padding:10px 0;border-top:1px solid var(--line2)"><?= $canEdit ? csrf_field() : '' ?>
+          <div class="kv"><span><b><?= e($sc['label']) ?></b><br><span class="small muted">cible : <?= e($labels[$sc['segment']] ?? $sc['segment']) ?> (<?= (int)($segments[$sc['segment']] ?? 0) ?> clients)</span></span>
+            <label class="check"><input type="checkbox" name="active" value="1"<?= checked((bool)$sc['active']) ?><?= can('marketing', 'update') ? '' : ' disabled' ?>> Actif</label></div>
+          <div class="field"><textarea class="input" name="body" rows="2"<?= can('marketing', 'update') ? '' : ' readonly' ?>><?= e($sc['body']) ?></textarea></div>
+          <div class="row" style="align-items:end"><div class="field"><label>Pas deux fois le même client avant (jours)</label><input class="input mono" type="number" name="cooldown_days" min="7" max="730" value="<?= (int)$sc['cooldown_days'] ?>" style="width:110px"></div>
+            <?php if ($canEdit): ?><button class="btn sm">Enregistrer</button><?php endif ?></div>
+        </<?= $canEdit ? 'form' : 'div' ?>>
+      <?php endforeach ?>
     </div>
 
     <?php if (can('marketing', 'create')): ?>

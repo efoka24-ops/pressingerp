@@ -7,44 +7,83 @@ use App\Core\Database;
 
 final class MarketingService
 {
+    /** Segments principaux (un client dans un seul) puis étiquettes qui se superposent (pros, débiteurs, fort panier, points). */
     public const SEGMENTS = [
-        'tous'      => 'Tous les clients',
-        'vip'       => 'VIP (≥ 300 000 / an ou marqués VIP)',
-        'reguliers' => 'Réguliers',
-        'nouveaux'  => 'Nouveaux (30 j)',
-        'a_risque'  => 'À risque (inactifs 45–90 j)',
-        'perdus'    => 'Perdus (> 90 j)',
-        'pros'      => 'Clients professionnels',
+        'tous'        => 'Tous les clients',
+        'vip'         => 'VIP (marqués VIP ou gros chiffre d\'affaires annuel)',
+        'reguliers'   => 'Réguliers',
+        'occasionnels' => 'Occasionnels',
+        'nouveaux'    => 'Nouveaux',
+        'a_risque'    => 'À risque (inactifs)',
+        'perdus'      => 'Perdus',
+        'a_verifier'  => 'À vérifier (jamais commandé)',
+        'pros'        => 'Clients professionnels',
+        'debiteurs'   => 'Débiteurs (solde à recouvrer)',
+        'fort_panier' => 'Fort panier',
+        'points'      => 'Points fidélité à utiliser',
     ];
 
     public const CHANNELS = ['sms' => 'SMS', 'whatsapp' => 'WhatsApp', 'email' => 'E-mail', 'auto' => 'Canal préféré du client'];
 
-    /** @return array<string, list<int>> segment => ids clients */
-    public function segments(): array
+    /** Seuils de segmentation, paramétrables par l'administrateur (jamais figés dans le code). */
+    public static function thresholds(): array
     {
+        $g = fn(string $k) => (int)SettingsService::get($k);
+        return [
+            'vip' => $g('vip.annual_threshold'), 'new_days' => $g('seg.new_days'), 'at_risk_days' => $g('seg.at_risk_days'), 'lost_days' => $g('seg.lost_days'),
+            'regular_orders' => $g('seg.regular_orders'), 'basket_high' => $g('seg.basket_high'), 'points' => $g('seg.points_notify'),
+        ];
+    }
+
+    /**
+     * Segment principal d'un client. Bornes : à risque dès at_risk_days sans commande, perdu au-delà de lost_days.
+     * @param array{is_vip:mixed,year_spend:mixed,created_at:string,last_order:?string,orders_year:mixed} $r
+     */
+    public static function classify(array $r, int $now, array $th): string
+    {
+        $idle = $r['last_order'] ? intdiv($now - strtotime($r['last_order']), 86400) : null;
+        return match (true) {
+            (int)$r['is_vip'] === 1 || (int)$r['year_spend'] >= $th['vip'] => 'vip',
+            intdiv($now - strtotime($r['created_at']), 86400) < $th['new_days'] => 'nouveaux',
+            $idle === null => 'a_verifier',
+            $idle > $th['lost_days'] => 'perdus',
+            $idle >= $th['at_risk_days'] => 'a_risque',
+            (int)$r['orders_year'] >= $th['regular_orders'] => 'reguliers',
+            default => 'occasionnels',
+        };
+    }
+
+    /** @return array<string, list<int>> segment => ids clients */
+    public function segments(?int $now = null): array
+    {
+        $now ??= time();
+        $th = self::thresholds();
         $rows = Database::all(
-            "SELECT c.id, c.type, c.is_vip, c.created_at, MAX(o.created_at) last_order,
-                    COALESCE(SUM(CASE WHEN o.created_at > NOW() - INTERVAL 1 YEAR THEN o.total ELSE 0 END), 0) year_spend
+            "SELECT c.id, c.type, c.is_vip, c.created_at, c.loyalty_points, MAX(o.created_at) last_order,
+                    COALESCE(SUM(CASE WHEN o.created_at > NOW() - INTERVAL 1 YEAR THEN o.total ELSE 0 END), 0) year_spend,
+                    COALESCE(SUM(CASE WHEN o.created_at > NOW() - INTERVAL 1 YEAR THEN 1 ELSE 0 END), 0) orders_year,
+                    (SELECT COALESCE(SUM(i.total - i.paid), 0) FROM invoices i WHERE i.client_id = c.id AND i.kind = 'facture' AND i.status <> 'payee')
+                  + (SELECT COALESCE(SUM(x.total - x.paid), 0) FROM orders x WHERE x.client_id = c.id AND x.on_account = 1 AND x.invoice_id IS NULL AND x.status <> 'annule') debt
              FROM clients c LEFT JOIN orders o ON o.client_id = c.id AND o.status <> 'annule'
-             GROUP BY c.id, c.type, c.is_vip, c.created_at"
+             GROUP BY c.id, c.type, c.is_vip, c.created_at, c.loyalty_points"
         );
         $out = array_fill_keys(array_keys(self::SEGMENTS), []);
-        $now = time();
         foreach ($rows as $r) {
             $id = (int)$r['id'];
             $out['tous'][] = $id;
+            $out[self::classify($r, $now, $th)][] = $id;
             if ($r['type'] === 'pro') {
                 $out['pros'][] = $id;
             }
-            $idle = $r['last_order'] ? ($now - strtotime($r['last_order'])) / 86400 : null;
-            $segment = match (true) {
-                (int)$r['is_vip'] === 1 || (int)$r['year_spend'] >= 300_000 => 'vip',
-                strtotime($r['created_at']) > $now - 30 * 86400 => 'nouveaux',
-                $idle === null || $idle > 90 => 'perdus',
-                $idle > 45 => 'a_risque',
-                default => 'reguliers',
-            };
-            $out[$segment][] = $id;
+            if ((int)$r['debt'] > 0) {
+                $out['debiteurs'][] = $id;
+            }
+            if ((int)$r['orders_year'] >= 2 && intdiv((int)$r['year_spend'], max(1, (int)$r['orders_year'])) >= $th['basket_high']) {
+                $out['fort_panier'][] = $id;
+            }
+            if ($th['points'] > 0 && (int)$r['loyalty_points'] >= $th['points']) {
+                $out['points'][] = $id;
+            }
         }
         return $out;
     }

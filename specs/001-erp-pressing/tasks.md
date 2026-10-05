@@ -112,9 +112,9 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T124 Tests des bornes de balance âgée (30/31, 60/61, 90/91)
 
 ## Phase 11 — Marketing (US11)
-- [ ] T130 Seuils de segments en paramètres (spec A8) ; statut « à vérifier »
-- [ ] T131 Scénarios réactivation, fidélité, VIP automatique ; `bin/segments.php`
-- [ ] T132 Respect du consentement (RG18)
+- [x] T130 Seuils de segments en paramètres (spec A8) ; statut « à vérifier »
+- [x] T131 Scénarios réactivation, fidélité, VIP automatique ; `bin/segments.php`
+- [x] T132 Respect du consentement (RG18)
 
 ## Phase 12 — Stocks et BI (US8, US12)
 - [ ] T140 Alerte stock critique dans le cockpit
