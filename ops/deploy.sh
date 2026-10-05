@@ -27,6 +27,7 @@ build_config() {  # $1 = jeton de migration (vide = désactivé)
     AUDIT_KEY=$(php -r 'echo bin2hex(random_bytes(32));'); echo "AUDIT_KEY=$AUDIT_KEY" >> ops/.deploy.env
   fi
   DBN="$DB_NAME" DBU="$DB_USER" DBP="$DB_PASS" TOK="$1" URL="$SITE_HTTP" \
+  MH="${MAIL_HOST:-}" MPT="${MAIL_PORT:-587}" MS="${MAIL_SECURE:-tls}" MU="${MAIL_USER:-}" MPW="${MAIL_PASS:-}" MF="${MAIL_FROM:-}" MFN="${MAIL_FROM_NAME:-Pressing}" \
   AK="$AUDIT_KEY" SK="${SUNGKU_API_KEY:-}" SS="${SUNGKU_WEBHOOK_SECRET:-}" SB="${SUNGKU_BASE_URL:-https://sungku.trugroup.cm}" \
   php -r '
     $c = [
@@ -34,6 +35,7 @@ build_config() {  # $1 = jeton de migration (vide = désactivé)
       "db"    => ["dsn" => "mysql:host=localhost;port=3306;dbname=" . getenv("DBN") . ";charset=utf8mb4", "user" => getenv("DBU"), "pass" => getenv("DBP")],
       "sungku" => ["base_url" => getenv("SB"), "api_key" => getenv("SK"), "webhook_secret" => getenv("SS")],
       "audit" => ["key" => getenv("AK")],
+      "mail" => ["host" => getenv("MH"), "port" => (int)getenv("MPT"), "secure" => getenv("MS"), "user" => getenv("MU"), "pass" => getenv("MPW"), "from" => getenv("MF"), "from_name" => getenv("MFN")],
       "migrate_token" => getenv("TOK"),
     ];
     echo "<?php\nreturn " . var_export($c, true) . ";\n";' > ops/config.local.generated.php

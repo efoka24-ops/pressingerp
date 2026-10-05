@@ -178,9 +178,11 @@ final class AlertService
         // Retards (rouge) et risques de retard (orange) comparés à la date promise
         $orange = (int)Config::get('risk_orange_hours', 3);
         $late = $risk = [];
-        foreach (Database::all("SELECT o.id, o.number, o.agency_id, o.promised_at, c.name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.status = 'en_atelier'") as $o) {
+        $lateOrders = [];
+        foreach (Database::all("SELECT o.id, o.number, o.agency_id, o.promised_at, o.client_id, o.tracking_token, c.name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.status = 'en_atelier'") as $o) {
             $t = strtotime($o['promised_at']);
             if ($t < $now) {
+                $lateOrders[] = $o;
                 $late['late:' . $o['id']] = ["Commande {$o['number']} ({$o['name']}) en retard de " . self::duration((int)floor(($now - $t) / 60)), 'order', (int)$o['id'], (int)$o['agency_id'], null];
             } elseif ($t < $now + $orange * 3600) {
                 $risk['risk:' . $o['id']] = ["Commande {$o['number']} ({$o['name']}) : à rendre dans " . self::duration((int)floor(($t - $now) / 60)) . ', pas encore prête', 'order', (int)$o['id'], (int)$o['agency_id'], null];
@@ -188,6 +190,17 @@ final class AlertService
         }
         self::sync('order_late', $late, $now);
         self::sync('order_risk', $risk, $now);
+
+        // Le client est prévenu une seule fois du retard, avec un nouveau délai estimé (CdC §11)
+        foreach ($lateOrders as $o) {
+            self::safe(fn() => MessageService::queueEvent('late', (int)$o['client_id'], [
+                'numero' => $o['number'], 'date_promise' => date('d/m à H:i', strtotime(\App\Domain\ServiceLevel::Express->promisedAt($now))), 'lien' => tracking_url((string)$o['tracking_token']),
+            ], (int)$o['id'], true));
+        }
+
+        // Messages qui ne partent pas faute de canal configuré
+        $stuck = MessageService::stuckCount($now);
+        self::sync('messages_stuck', $stuck > 0 ? ['msgstuck' => ["$stuck message(s) client en attente : aucun canal d'envoi n'est configuré (SMS, WhatsApp). Configurer le fournisseur dans config.local.php.", null, null, null, null]] : [], $now);
 
         // Encours client au-dessus du plafond
         $wanted = [];

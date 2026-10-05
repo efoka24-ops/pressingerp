@@ -28,6 +28,15 @@ $isPro = $v('type', 'particulier') === 'pro';
     <div class="field"><label>Délai de paiement (jours)</label><input class="input mono" type="number" min="0" name="payment_terms_days" value="<?= e($v('payment_terms_days', 30)) ?>"></div>
   </div>
   <div class="field"><label>Préférences de traitement</label><textarea class="input" name="preferences" placeholder="Amidon léger, rendu sur cintre…"><?= e($v('preferences')) ?></textarea></div>
+  <?php $consent = isset($c['id']) ? \App\Services\ConsentService::current((int)$c['id']) : []; ?>
+  <div class="field"><span class="label">Offres et promotions (consentement du client)</span>
+    <div class="row" style="gap:16px;flex-wrap:wrap">
+      <?php foreach (\App\Services\ConsentService::CHANNELS as $ch => $label): ?>
+        <label class="check"><input type="checkbox" name="consent[<?= $ch ?>]" value="1" <?= !empty($consent[$ch]) ? 'checked' : '' ?>> <?= e($label) ?></label>
+      <?php endforeach ?>
+    </div>
+    <div class="small muted">Sans consentement, le client ne reçoit que les messages liés à ses commandes (dépôt, prête, retard, livraison). Jamais d'offre.</div>
+  </div>
   <div class="field"><label>Note interne</label><textarea class="input" name="notes"><?= e($v('notes')) ?></textarea></div>
   <div class="row" style="align-items:center">
     <label class="check"><input type="checkbox" name="is_vip" value="1"<?= checked((bool)$v('is_vip', 0)) ?>> Client VIP</label>

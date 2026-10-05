@@ -53,6 +53,8 @@ use App\Services\ClientService;
       <div class="card-h"><h2>Préférences</h2></div>
       <div class="kv"><span>Canal préféré</span><span><?= e(['sms' => 'SMS', 'whatsapp' => 'WhatsApp', 'email' => 'E-mail'][$c['preferred_channel']] ?? $c['preferred_channel']) ?></span></div>
       <?php if ($c['email']): ?><div class="kv"><span>E-mail</span><span><?= e($c['email']) ?></span></div><?php endif ?>
+      <?php $consent = \App\Services\ConsentService::current((int)$c['id']); ?>
+      <div class="small" style="margin-top:8px"><b>Offres :</b> <?= implode(' · ', array_map(fn($ch, $label) => e($label) . ' ' . (!empty($consent[$ch]) ? '<span class="green">oui</span>' : '<span class="muted">non</span>'), array_keys(\App\Services\ConsentService::CHANNELS), \App\Services\ConsentService::CHANNELS)) ?></div>
       <?php if ($c['preferences']): ?><div class="note" style="margin-top:8px;white-space:pre-line"><?= e($c['preferences']) ?></div><?php endif ?>
       <?php if ($c['notes']): ?><div class="note warn" style="margin-top:8px;white-space:pre-line"><?= e($c['notes']) ?></div><?php endif ?>
     </div>

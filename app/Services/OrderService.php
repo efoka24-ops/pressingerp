@@ -126,7 +126,7 @@ final class OrderService
             }
 
             $count = count($quote['lines']);
-            Notifier::queue((int)$client['id'], "Pressing : commande {$number} reçue ({$count} pièce" . ($count > 1 ? 's' : '') . '). Prête le ' . date('d/m à H:i', strtotime($promised)) . '. Suivi : ' . tracking_url($token));
+            MessageService::queueEvent('deposit', (int)$client['id'], ['numero' => $number, 'pieces' => $count . ' pièce' . ($count > 1 ? 's' : ''), 'date_promise' => date('d/m à H:i', strtotime($promised)), 'lien' => tracking_url($token)], $orderId);
             Audit::log('order.create', 'orders', $orderId, ['total' => $quote['total']] + (isset($opts['workstation_id']) ? ['hors_ligne' => true, 'poste' => (int)$opts['workstation_id']] : []));
             return $orderId;
         });
@@ -145,10 +145,12 @@ final class OrderService
         if ($pending === 0 && $o['status'] !== 'pret') {
             Database::update('orders', ['status' => 'pret', 'ready_at' => now()], 'id = :id', ['id' => $orderId]);
             $balance = (int)$o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
-            $msg = "Pressing : votre commande {$o['number']} est prête"
-                . ($o['delivery_address'] ? ', livraison en préparation.' : ', vous pouvez passer la retirer.')
-                . ($balance > 0 ? ' Reste à payer : ' . money($balance, true) . '.' : '');
-            Notifier::queue((int)$o['client_id'], $msg . ' Suivi : ' . tracking_url($o['tracking_token']));
+            MessageService::queueEvent('ready', (int)$o['client_id'], [
+                'numero' => $o['number'],
+                'retrait' => $o['delivery_address'] ? 'Livraison en préparation.' : 'Vous pouvez passer la retirer.',
+                'solde' => $balance > 0 ? ' Reste à payer : ' . money($balance, true) . '.' : '',
+                'lien' => tracking_url($o['tracking_token']),
+            ], (int)$orderId);
         } elseif ($pending > 0 && $o['status'] === 'pret') {
             Database::update('orders', ['status' => 'en_atelier', 'ready_at' => null], 'id = :id', ['id' => $orderId]);
         }
@@ -181,6 +183,8 @@ final class OrderService
                 WorkflowService::log((int)$g['id'], Step::Retire, 'retrait');
             }
             LoyaltyService::award((int)$o['client_id'], (int)$o['total']);
+            $points = (int)Database::value('SELECT loyalty_points FROM clients WHERE id = ?', [$o['client_id']]);
+            MessageService::queueEvent('closed', (int)$o['client_id'], ['numero' => $o['number'], 'fidelite' => $points > 0 ? "Vos points fidélité : $points." : ''], $orderId);
             Audit::log('order.pickup', 'orders', $orderId);
         });
     }

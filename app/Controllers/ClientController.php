@@ -101,6 +101,7 @@ final class ClientController extends Controller
         $data['created_at'] = now();
         $id = Database::insert('clients', $data);
         Audit::log('client.create', 'clients', $id);
+        \App\Services\ConsentService::setFromForm($id, (array)($_POST['consent'] ?? []), 'fiche client');
         if ($this->str('retour') === 'commande') {
             $this->ok('Client créé.', '/commandes/nouvelle?client=' . $id);
         }
@@ -115,6 +116,7 @@ final class ClientController extends Controller
         if ($dup) {
             $this->fail("Ce numéro appartient déjà à {$dup['name']}.");
         }
+        \App\Services\ConsentService::setFromForm((int)$c['id'], (array)($_POST['consent'] ?? []), 'fiche client');
         $changed = array_keys(array_filter($data, fn($v, $k) => array_key_exists($k, $c) && (string)$c[$k] !== (string)$v, ARRAY_FILTER_USE_BOTH));
         Database::update('clients', $data, 'id = :id', ['id' => $c['id']]);
         Audit::log('client.update', 'clients', (int)$c['id'], [], array_intersect_key($c, array_flip($changed)), array_intersect_key($data, array_flip($changed)));

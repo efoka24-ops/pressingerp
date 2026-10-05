@@ -31,6 +31,11 @@ try {
             $r = Backup::run();
             echo implode("\n", $r['log']), "\n", $r['verified'] ? 'OK' : 'ATTENTION : sauvegarde non vérifiée', ' — ', $r['file'], ' (', $r['size'], " octets)\n";
             break;
+        case 'smtp':
+            // Vérifie la connexion SMTP depuis l'hébergeur (connexion + authentification, aucun message envoyé)
+            echo \App\Services\Messaging\SmtpGateway::verify(), "\n";
+            echo 'Canaux : ', json_encode(\App\Services\Messaging\Gateways::status()), "\n";
+            break;
         case 'restore-test':
             $r = Backup::restoreTest();
             echo implode("\n", $r['log']), "\n", implode("\n", $r['diffs']), "\n", $r['ok'] ? 'RESTAURATION OK' : 'RESTAURATION EN ÉCHEC', "\n";

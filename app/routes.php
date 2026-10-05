@@ -140,6 +140,10 @@ $r->post('/admin/parametres', [AdminController::class, 'saveSetting'], 'admin:up
 $r->get('/admin/audit', [AdminController::class, 'audit'], 'admin');
 $r->get('/admin/sauvegardes', [AdminController::class, 'backups'], 'admin');
 $r->get('/admin/parcours', [AdminController::class, 'routes'], 'admin');
+$r->get('/admin/messages', [AdminController::class, 'messages'], 'admin');
+$r->post('/admin/messages/modele', [AdminController::class, 'saveTemplate'], 'admin:update');
+$r->post('/admin/messages/test-smtp', [AdminController::class, 'testSmtp'], 'admin:update');
+$r->post('/admin/messages/test-envoi', [AdminController::class, 'testMail'], 'admin:update');
 $r->get('/admin/alertes', [AdminController::class, 'alertRules'], 'admin');
 $r->post('/admin/alertes', [AdminController::class, 'saveAlertRule'], 'admin:update');
 $r->get('/admin/postes', [OfflineController::class, 'stations'], 'admin');

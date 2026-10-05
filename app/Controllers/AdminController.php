@@ -250,6 +250,64 @@ final class AdminController extends Controller
         $this->ok('Règle enregistrée.', '/admin/alertes');
     }
 
+    // --- Messagerie ------------------------------------------------------------------------------
+
+    public function messages(): void
+    {
+        $this->view('admin/messages', [
+            'title'     => 'Messagerie',
+            'templates' => Database::all('SELECT * FROM message_templates ORDER BY event'),
+            'events'    => \App\Services\MessageService::EVENTS,
+            'channels'  => \App\Services\Messaging\Gateways::status(),
+            'stats'     => Database::all("SELECT status, COUNT(*) n FROM messages WHERE created_at > NOW() - INTERVAL 7 DAY GROUP BY status"),
+            'recent'    => Database::all('SELECT m.id, m.channel, m.event, m.status, m.error, m.created_at, c.name client FROM messages m JOIN clients c ON c.id = m.client_id ORDER BY m.id DESC LIMIT 15'),
+            'mail'      => (array)\App\Core\Config::get('mail', []),
+        ]);
+    }
+
+    public function saveTemplate(): void
+    {
+        $event = $this->str('event');
+        $allowed = \App\Services\MessageService::EVENTS[$event] ?? $this->fail('Modèle inconnu.');
+        $body = $this->required(['body' => 'Texte du message'])['body'];
+        $reason = $this->required(['reason' => 'Motif'])['reason'];
+        preg_match_all('/\{(\w+)\}/', $body, $m);
+        if ($unknown = array_diff($m[1], $allowed)) {
+            $this->fail('Variable(s) inconnue(s) : {' . implode('}, {', $unknown) . '}. Disponibles : {' . implode('}, {', $allowed) . '}.');
+        }
+        $t = Database::one('SELECT * FROM message_templates WHERE event = ?', [$event]);
+        $new = ['body' => mb_substr($body, 0, 600), 'active' => $this->int('active') ? 1 : 0];
+        Database::update('message_templates', $new + ['updated_by' => Auth::id() ?: null, 'updated_at' => now()], 'event = :e', ['e' => $event]);
+        Audit::log('template.update', 'message_templates', null, ['event' => $event], array_intersect_key($t, $new), $new, $reason);
+        $this->ok('Modèle enregistré.', '/admin/messages');
+    }
+
+    /** Vérifie la connexion SMTP et les identifiants, sans envoyer de message. */
+    public function testSmtp(): void
+    {
+        try {
+            $this->ok(\App\Services\Messaging\SmtpGateway::verify(), '/admin/messages');
+        } catch (\Throwable $e) {
+            $this->fail('SMTP : ' . $e->getMessage(), '/admin/messages');
+        }
+    }
+
+    /** Envoie un e-mail de test à l'adresse saisie (celle de la personne qui teste). */
+    public function testMail(): void
+    {
+        $to = $this->str('to');
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            $this->fail('Adresse e-mail invalide.');
+        }
+        try {
+            (new \App\Services\Messaging\SmtpGateway())->send($to, 'Pressing : message de test', "Ceci est un message de test envoyé depuis l'administration du Pressing ERP.\nSi vous le lisez, l'envoi d'e-mails fonctionne.");
+        } catch (\Throwable $e) {
+            $this->fail('Envoi impossible : ' . $e->getMessage());
+        }
+        Audit::log('mail.test', 'messages', null, ['to' => $to]);
+        $this->ok("Message de test envoyé à $to.", '/admin/messages');
+    }
+
     public function backups(): void
     {
         $this->view('admin/backups', ['title' => 'Sauvegardes', 'files' => Backup::list()]);

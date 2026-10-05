@@ -2,49 +2,22 @@
 declare(strict_types=1);
 
 /**
- * Envoi des messages en file (SMS / WhatsApp / e-mail).
- * À lancer en tâche planifiée, par ex. toutes les minutes :
- *   * * * * * php /chemin/pressing-erp/bin/send-messages.php
- *
- * Remplacez LogGateway par l'adaptateur de votre fournisseur
- * (Orange SMS API, Twilio, WhatsApp Business Cloud API, SMTP…).
+ * Envoi des messages en file (SMS, WhatsApp, e-mail) : php bin/send-messages.php
+ * Cron conseillé (panneau Camoo), chaque minute : * * * * * php /home/trugro9159/pressing-erp/pressing/bin/send-messages.php
+ * Sans cron, un petit lot part au fil des pages visitées (une fois par minute).
  */
 
 define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/app/bootstrap.php';
 
-use App\Core\Database;
+use App\Services\MessageService;
+use App\Services\Messaging\Gateways;
 
-interface MessageGateway
-{
-    /** @throws RuntimeException en cas d'échec */
-    public function send(string $channel, string $to, string $body, ?string $email): void;
+if (PHP_SAPI !== 'cli') {
+    exit("CLI uniquement.\n");
 }
-
-final class LogGateway implements MessageGateway
-{
-    public function send(string $channel, string $to, string $body, ?string $email): void
-    {
-        $line = sprintf("[%s] %s → %s : %s\n", date('c'), strtoupper($channel), $channel === 'email' ? ($email ?? '?') : $to, $body);
-        file_put_contents(BASE_PATH . '/storage/messages.log', $line, FILE_APPEND | LOCK_EX);
-    }
+$r = MessageService::dispatch(200);
+echo "envoyés : {$r['sent']} · nouvel essai programmé : {$r['retry']} · échecs : {$r['failed']} · en attente de canal : {$r['waiting']}\n";
+foreach (Gateways::status() as $ch => $ok) {
+    echo "  canal $ch : " . ($ok ? 'configuré' : 'NON configuré') . "\n";
 }
-
-@mkdir(BASE_PATH . '/storage', 0775, true);
-$gateway = new LogGateway();
-$batch = Database::all(
-    "SELECT m.*, c.phone, c.email FROM messages m JOIN clients c ON c.id = m.client_id
-     WHERE m.status = 'en_attente' ORDER BY m.id LIMIT 200"
-);
-$sent = 0;
-foreach ($batch as $m) {
-    try {
-        $channel = $m['channel'] === 'email' && !$m['email'] ? 'sms' : $m['channel'];
-        $gateway->send($channel, $m['phone'], $m['body'], $m['email']);
-        Database::update('messages', ['status' => 'envoye', 'sent_at' => now(), 'error' => null], 'id = :id', ['id' => $m['id']]);
-        $sent++;
-    } catch (Throwable $e) {
-        Database::update('messages', ['status' => 'echec', 'error' => mb_substr($e->getMessage(), 0, 255)], 'id = :id', ['id' => $m['id']]);
-    }
-}
-echo "$sent / " . count($batch) . " message(s) envoyé(s).\n";

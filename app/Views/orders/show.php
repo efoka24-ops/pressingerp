@@ -105,6 +105,16 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
     <?php endif ?>
 
 
+    <?php if ($messages): ?>
+    <div class="card pad">
+      <h2>Messages au client</h2>
+      <?php foreach ($messages as $m): ?>
+        <div class="kv small"><span><?= dt($m['created_at'], 'd/m H:i') ?> · <?= e(['sms' => 'SMS', 'whatsapp' => 'WhatsApp', 'email' => 'E-mail'][$m['channel']] ?? $m['channel']) ?> · <?= e($m['event'] ?? 'message') ?><?= $m['error'] ? '<br><span class="muted">' . e($m['error']) . '</span>' : '' ?></span>
+          <span class="<?= $m['status'] === 'envoye' ? 'green' : ($m['status'] === 'echec' ? 'red' : 'orange') ?>"><?= ['envoye' => 'Envoyé', 'echec' => 'Échec', 'en_attente' => 'En attente', 'annule' => 'Annulé'][$m['status']] ?? $m['status'] ?></span></div>
+      <?php endforeach ?>
+    </div>
+    <?php endif ?>
+
     <?php $manager = Auth::isManager(); $authFields = $manager ? '' : '<div class="row"><div class="field"><label>Responsable : identifiant</label><input class="input" name="auth_login" autocomplete="off" required></div><div class="field"><label>Mot de passe</label><input class="input" type="password" name="auth_password" autocomplete="off" required></div></div>'; ?>
 
     <?php if ($intents || ($balance > 0 && in_array($o['status'], ['en_atelier', 'pret'], true))): ?>

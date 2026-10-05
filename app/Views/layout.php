@@ -7,6 +7,7 @@ $u = Auth::user();
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $f = flash();
 \App\Services\AlertService::lazyTick();
+\App\Services\MessageService::lazyDispatch();
 $alertCount = $u ? \App\Services\AlertService::count($u) : 0;
 ?><!doctype html>
 <html lang="fr">

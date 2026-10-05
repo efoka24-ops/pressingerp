@@ -86,11 +86,11 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T085 Tests alertes avec horloge simulée (retard, risque, délai, escalade, prise en compte, blocage, incident critique, transfert, reprise, règles désactivées, stock). 97 tests réussis au total en ligne, dont un rendu des vraies pages et un contrôle de cohérence de toutes les routes
 
 ## Phase 7 — Notifications (US6)
-- [ ] T090 Adaptateurs SMS, WhatsApp, e-mail derrière l'interface de passerelle (bin/send-messages.php)
-- [ ] T091 Consentements par canal et finalité ; opérationnel toujours envoyé (RG11)
-- [ ] T092 Repli de canal et nouvelle tentative (SE10, SE11)
-- [ ] T093 Modèles de messages administrables
-- [ ] T094 Tests : consentement retiré, client anonyme
+- [x] T090 Adaptateurs SMS, WhatsApp, e-mail derrière l'interface de passerelle (bin/send-messages.php)
+- [x] T091 Consentements par canal et finalité ; opérationnel toujours envoyé (RG11)
+- [x] T092 Repli de canal et nouvelle tentative (SE10, SE11)
+- [x] T093 Modèles de messages administrables
+- [x] T094 Tests : consentement retiré, client anonyme
 
 ## Phase 8 — Livraison (US7)
 - [ ] T100 Migration `deliveries`, `delivery_proofs` (append-only), rôle livreur

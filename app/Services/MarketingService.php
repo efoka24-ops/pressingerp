@@ -59,17 +59,21 @@ final class MarketingService
         if (!$ids) {
             throw new \DomainException('Aucun client dans ce segment.');
         }
-        Database::transaction(function () use ($c, $ids, $campaignId): void {
+        $queued = 0;
+        Database::transaction(function () use ($c, $ids, $campaignId, &$queued): void {
             $in = implode(',', array_map('intval', $ids));
             foreach (Database::all("SELECT id, name, loyalty_points FROM clients WHERE id IN ($in)") as $client) {
                 $first = explode(' ', trim($client['name']))[0];
                 $body = strtr($c['message'], ['{prenom}' => $first, '{nom}' => $client['name'], '{points}' => (string)$client['loyalty_points']]);
-                Notifier::queue((int)$client['id'], $body, $c['channel'] === 'auto' ? null : $c['channel'], $campaignId);
+                // Offre promotionnelle : seulement aux clients qui ont consenti à ce canal (RG18)
+                if (MessageService::queueText((int)$client['id'], $body, 'marketing', $c['channel'] === 'auto' ? null : $c['channel'], $campaignId) !== null) {
+                    $queued++;
+                }
             }
-            Database::update('campaigns', ['status' => 'envoyee', 'sent_count' => count($ids), 'sent_at' => now()], 'id = :id', ['id' => $campaignId]);
+            Database::update('campaigns', ['status' => 'envoyee', 'sent_count' => $queued, 'sent_at' => now()], 'id = :id', ['id' => $campaignId]);
         });
-        Audit::log('campaign.send', 'campaigns', $campaignId, ['count' => count($ids)]);
-        return count($ids);
+        Audit::log('campaign.send', 'campaigns', $campaignId, ['ciblés' => count($ids), 'envoyés' => $queued, 'sans consentement' => count($ids) - $queued]);
+        return $queued;
     }
 
     /** Retours : clients ciblés ayant commandé dans les 14 jours suivant l'envoi. */

@@ -166,6 +166,7 @@ final class OrderController extends Controller
             'o'        => $o,
             'garments' => Database::all('SELECT g.*, u.name operator FROM garments g LEFT JOIN users u ON u.id = g.assigned_to WHERE g.order_id = ? ORDER BY g.seq', [$o['id']]),
             'payments' => Database::all('SELECT p.*, u.name user FROM payments p LEFT JOIN users u ON u.id = p.user_id WHERE p.order_id = ? ORDER BY p.id', [$o['id']]),
+            'messages' => Database::all('SELECT m.*, (SELECT GROUP_CONCAT(CONCAT(a.channel, ":", a.status) ORDER BY a.id SEPARATOR ", ") FROM message_attempts a WHERE a.message_id = m.id) attempts FROM messages m WHERE m.order_id = ? ORDER BY m.id DESC LIMIT 20', [$o['id']]),
             'intents'  => Database::all('SELECT * FROM payment_intents WHERE order_id = ? ORDER BY id DESC LIMIT 10', [$o['id']]),
             'methods'  => PaymentMethod::counter(),
             'printLabels' => input('etiquettes') === '1',
