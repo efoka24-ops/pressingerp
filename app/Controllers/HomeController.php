@@ -67,7 +67,7 @@ final class HomeController extends Controller
         if (preg_match('/^PR-\d{4}-\d{6}-\d{2,}$/', $Q)) {
             redirect(Auth::can('production') ? '/scan?code=' . urlencode($Q) : '/tracabilite?q=' . urlencode($Q));
         }
-        if (preg_match('/^PR-\d{4}-\d{6}$/', $Q) && ($id = Database::value('SELECT id FROM orders WHERE number = ?', [$Q]))) {
+        if (preg_match('/^PR-\d{4}-\d{6}$/', $Q) && ($id = Database::value('SELECT id FROM orders WHERE number = ?' . Auth::scopeSql(), [$Q]))) {
             redirect('/commandes/' . $id);
         }
         if (preg_match('/^FA-\d{4}-\d{5}$/', $Q) && ($id = Database::value('SELECT id FROM invoices WHERE number = ?', [$Q]))) {
@@ -82,7 +82,7 @@ final class HomeController extends Controller
                 ['q' => "%$q%"] + (strlen($digits) >= 4 ? ['d' => "%$digits%"] : [])
             );
             $orders = Database::all(
-                'SELECT o.id, o.number, o.status, o.total, o.created_at, c.name client FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.number LIKE ? ORDER BY o.id DESC LIMIT 20',
+                'SELECT o.id, o.number, o.status, o.total, o.created_at, c.name client FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.number LIKE ?' . Auth::scopeSql('o.agency_id') . ' ORDER BY o.id DESC LIMIT 20',
                 ["%$Q%"]
             );
         }

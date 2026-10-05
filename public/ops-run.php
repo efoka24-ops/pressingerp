@@ -31,6 +31,10 @@ try {
             $r = Backup::run();
             echo implode("\n", $r['log']), "\n", $r['verified'] ? 'OK' : 'ATTENTION : sauvegarde non vérifiée', ' — ', $r['file'], ' (', $r['size'], " octets)\n";
             break;
+        case 'restore-test':
+            $r = Backup::restoreTest();
+            echo implode("\n", $r['log']), "\n", implode("\n", $r['diffs']), "\n", $r['ok'] ? 'RESTAURATION OK' : 'RESTAURATION EN ÉCHEC', "\n";
+            break;
         default:
             echo "Tâche inconnue.\n";
     }

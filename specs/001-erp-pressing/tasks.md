@@ -24,19 +24,19 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 
 ## Phase 1 — Socle : audit, RBAC, paramètres, sauvegarde
 - [x] T020 Migration audit v2 (0003) : `old_value`, `new_value`, `reason`, `agency_id`, `prev_hash`, `hash` — appliquée en ligne
-- [~] T021 Triggers refusés par Camoo (erreur 1419, SUPER requis). Remplacés par : aucun UPDATE/DELETE dans le code (test de balayage) et chaîne de hachage signée par clé secrète (HMAC). Triggers conservés dans `database/optional/`, tentés à chaque migration. Limite : la suppression des dernières lignes seules n'est pas détectable sans ancrage externe
+- [x] T021 Triggers refusés par Camoo (erreur 1419, SUPER requis) : remplacés par (1) aucun UPDATE/DELETE dans le code, vérifié par un test de balayage, (2) chaîne de hachage signée par clé secrète hors base, (3) ancrage de la dernière ligne par chaque sauvegarde (`audit.anchor`) : supprimer des lignes déjà ancrées est détecté. Triggers conservés dans `database/optional/`, tentés à chaque migration. Reste ouvert : les lignes écrites depuis la dernière sauvegarde peuvent encore être retirées sans trace
 - [x] T022 `Audit::log()` v2 (ancienne/nouvelle valeur, motif) appelé pour annulation, fiche client, plafond, clôture de caisse, paramètres, utilisateurs, agences. Prix et remises : phases 2 et 5
 - [x] T023 Accès refusés (`access.denied`) et connexions échouées (`auth.failed`) journalisés
 - [x] T024 RBAC fin : lecture/création/modification/validation/suppression par module (Role.php, Auth.php, Router) ; validations explicites : annulation, contrôle qualité, résiliation, envoi de campagne
 - [x] T025 Rôles ajoutés : administrateur, superviseur, livreur, marketing ; « Limité » = sous-ensemble de droits défini dans `Role::rights()`
-- [~] T026 Choix d'agence à la connexion réservé à Admin/Direction (faille corrigée) ; périmètre appliqué aux commandes, traçabilité et cockpit pour comptoir/responsable. Reste : recherche globale, caisse, clients
+- [x] T026 Choix d'agence réservé à Admin/Direction ; périmètre appliqué (comptoir et responsable) aux commandes, annulation, retrait, encaissement, Mobile Money, traçabilité, recherche, caisse et cockpit. Les clients restent communs au groupe (un client fréquente toutes les agences) ; le responsable d'agence n'a plus BI, commercial ni marketing, non filtrables par agence. Testé
 - [x] T027 Paramètres versionnés en ajout seul (`settings`) + écran admin avec motif obligatoire et historique
 - [x] T028 Écrans admin : utilisateurs (création, rôle, agence, activation, réinitialisation), agences
-- [~] T029 `bin/backup.php` testé en ligne (27 tables, archive vérifiée). Reste : cron dans le panneau Camoo et copie externalisée (`backup.ftp`, destination à fournir)
-- [~] T030 Procédure écrite (ops/restauration.md), intégrité de l'archive contrôlée. Reste : test de restauration complet dans une seconde base
-- [x] T031 Recette `tests/` (audit, rbac, agence, Mobile Money) exécutée en ligne via `ops/deploy.sh run selftest` : 21 réussis, 0 échec, 4 ignorés (triggers)
+- [~] T029 `bin/backup.php` testé en ligne (27 tables, archive vérifiée, ancrage de l'audit). Reste, à fournir par vous : le cron dans le panneau Camoo et une destination externe (`backup.ftp` dans config.local.php) — sans elle les archives restent sur le même hébergement
+- [x] T030 Test de restauration réussi en ligne (`ops/deploy.sh run restore-test`) : archive rejouée dans des tables témoins `rt_*` (hébergement sans seconde base), 27 tables, effectifs identiques, tables témoins supprimées. Procédure : ops/restauration.md
+- [x] T031 Recette `tests/` (audit, rbac, agence, Mobile Money) exécutée en ligne via `ops/deploy.sh run selftest` : 24 réussis, 0 échec, 4 ignorés (triggers indisponibles)
 
-**Contrôle** : paramètres et annulations apparaissent avec ancienne/nouvelle valeur ; la chaîne d'audit se vérifie ; restauration complète à tester.
+**Contrôle** : fait, sauf le cron et la copie externe des sauvegardes (T029) qui dépendent de l'hébergeur et de vous.
 
 ## Phase 2 — Réception conforme (US1)
 - [ ] T040 Client anonyme : autorisé au comptoir, interdit pour crédit, livraison, fidélité, relances (spec A10)

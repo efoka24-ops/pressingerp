@@ -115,7 +115,7 @@ final class OrderService
     /** Met à jour le statut de la commande selon l'avancement de ses pièces. */
     public function refreshStatus(int $orderId): void
     {
-        $o = Database::one('SELECT * FROM orders WHERE id = ?', [$orderId]);
+        $o = Database::one('SELECT * FROM orders WHERE id = ?' . Auth::scopeSql(), [$orderId]);
         if (!$o || in_array($o['status'], ['retire', 'livre', 'annule'], true)) {
             return;
         }
@@ -136,7 +136,7 @@ final class OrderService
     public function pickup(int $orderId, ?PaymentMethod $method): void
     {
         Database::transaction(function () use ($orderId, $method): void {
-            $o = Database::one('SELECT * FROM orders WHERE id = ? FOR UPDATE', [$orderId])
+            $o = Database::one('SELECT * FROM orders WHERE id = ?' . Auth::scopeSql() . ' FOR UPDATE', [$orderId])
                 ?? throw new \DomainException('Commande introuvable.');
             if ($o['status'] !== 'pret') {
                 throw new \DomainException('La commande n\'est pas encore prête.');
@@ -167,7 +167,7 @@ final class OrderService
         if (!Auth::isManager()) {
             throw new \DomainException('Annulation réservée à un responsable.');
         }
-        $o = Database::one('SELECT * FROM orders WHERE id = ?', [$orderId]) ?? throw new \DomainException('Commande introuvable.');
+        $o = Database::one('SELECT * FROM orders WHERE id = ?' . Auth::scopeSql(), [$orderId]) ?? throw new \DomainException('Commande introuvable.');
         if (!in_array($o['status'], ['en_atelier', 'pret'], true)) {
             throw new \DomainException('Cette commande ne peut plus être annulée.');
         }

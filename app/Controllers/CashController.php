@@ -17,7 +17,8 @@ final class CashController extends Controller
         $cash = new CashService();
         $session = $cash->current(Auth::id());
         $month = date('Y-m-01');
-        $agencyFilter = Auth::isManager() ? '' : ' AND cs.agency_id = ' . Auth::agencyId();
+        // Un rôle limité à son agence ne voit que ses caisses ; sans périmètre, les caisses de toutes les agences
+        $agencyFilter = Auth::scopedAgencyId() ? ' AND cs.agency_id = ' . Auth::scopedAgencyId() : (Auth::isManager() ? '' : ' AND cs.agency_id = ' . Auth::agencyId());
         $sessions = Database::all(
             "SELECT cs.*, a.name agency, u.name user,
                     (SELECT SUM(counted - expected) FROM cash_counts cc WHERE cc.cash_session_id = cs.id) diff,

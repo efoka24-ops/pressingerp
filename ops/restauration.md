@@ -17,4 +17,7 @@
 6. Rouvrir le site.
 
 ## Test de restauration
-Un test complet exige une seconde base. Si l'hébergeur autorise `CREATE DATABASE`, restaurer l'archive dans `…_restore`, comparer le nombre de lignes par table avec la production, puis supprimer cette base. Résultat du dernier test : voir `specs/001-erp-pressing/tasks.md` (T030).
+`ops/deploy.sh run restore-test` : sauvegarde fraîche, puis rejeu dans des tables témoins `rt_*` (l'hébergeur n'offre pas de seconde base), comparaison du nombre de lignes de chacune des tables, suppression des tables témoins. Le script refuse de s'exécuter si une instruction vise une table réelle. Dernier résultat (2026-10-05) : 27 tables, 0 écart, restauration OK.
+
+## Ancrage de l'audit
+Chaque sauvegarde note la dernière ligne du journal d'audit dans `storage/audit.anchor`. `/admin/audit?verifier=1` contrôle la chaîne et cette ancre. La copie externe (`backup.ftp`) envoie l'ancre à côté de l'archive (`AAAAMMJJ-HHMMSS.audit.anchor`) : conservez-la, elle prouve l'état du journal à la date de la sauvegarde.

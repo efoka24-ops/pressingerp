@@ -68,6 +68,20 @@ final class Auth
         return self::role()?->agencyScoped() ? self::agencyId() : 0;
     }
 
+    /** Le rôle courant peut-il voir les données de cette agence ? (hors session utilisateur : oui, contexte système) */
+    public static function canSeeAgency(int $agencyId): bool
+    {
+        $scope = self::scopedAgencyId();
+        return $scope === 0 || $scope === $agencyId;
+    }
+
+    /** Fragment SQL « AND col = N » pour un rôle limité à son agence, vide sinon. */
+    public static function scopeSql(string $column = 'agency_id'): string
+    {
+        $scope = self::scopedAgencyId();
+        return $scope ? " AND $column = " . $scope : '';
+    }
+
     /** Remplace l'utilisateur courant (tests uniquement). */
     public static function actAs(?array $user): void
     {

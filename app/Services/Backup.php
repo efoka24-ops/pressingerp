@@ -92,11 +92,16 @@ final class Backup
             $log[] = 'supprimée (rétention) : ' . $old['name'];
         }
 
-        // Copie externalisée
+        // Ancrage de l'audit hors base, puis copie externalisée de l'archive ET de l'ancre
+        $anchor = Audit::writeAnchor();
+        $log[] = $anchor ? 'ancrage audit : #' . $anchor['id'] : 'ancrage audit : journal vide';
         $remote = null;
         $ftp = (array)Config::get('backup.ftp', []);
         if (!empty($ftp['host']) && $check['ok']) {
             $remote = self::upload($gz, $ftp);
+            if ($anchor) {
+                self::upload(Audit::anchorPath(), $ftp, basename($gz, '.sql.gz') . '.audit.anchor');
+            }
             $log[] = 'copie externe : ' . $remote;
         }
 
@@ -126,9 +131,91 @@ final class Backup
         return ['ok' => $complete && $tables === $expected, 'tables' => $tables, 'expected' => $expected, 'complete' => $complete];
     }
 
-    private static function upload(string $file, array $ftp): string
+    /**
+     * Test de restauration SANS toucher aux tables réelles : l'archive la plus récente est rejouée dans des tables
+     * préfixées « rt_ » (hébergement sans seconde base), les effectifs sont comparés, puis les tables rt_ sont supprimées.
+     * @return array{ok:bool,tables:int,diffs:list<string>,log:list<string>}
+     */
+    public static function restoreTest(): array
     {
-        $url = 'ftp://' . $ftp['host'] . '/' . trim((string)($ftp['dir'] ?? ''), '/') . '/' . basename($file);
+        $log = [];
+        // Tables témoins laissées par un essai interrompu : à supprimer AVANT la sauvegarde pour ne pas les archiver
+        foreach (Database::all("SHOW TABLES LIKE 'rt\\_%'") as $row) {
+            self::dropShadowTable(substr((string)array_values($row)[0], 3));
+        }
+        $run = self::run();
+        $gz = self::dir() . '/' . $run['file'];
+        $tables = array_map(fn($r) => (string)array_values($r)[0], Database::all('SHOW FULL TABLES WHERE Table_type = "BASE TABLE"'));
+        $tables = array_values(array_filter($tables, fn($t) => !str_starts_with($t, 'rt_')));
+        usort($tables, fn($a, $b) => strlen($b) <=> strlen($a));
+
+        $sql = (string)gzdecode((string)file_get_contents($gz));
+        // Aucune instruction ne doit pouvoir atteindre une table réelle : on retire les DROP et on préfixe tous les noms
+        $sql = (string)preg_replace('/^DROP TABLE IF EXISTS .*$/m', '', $sql);
+        foreach ($tables as $t) {
+            $sql = str_replace('`' . $t . '`', '`rt_' . $t . '`', $sql);
+        }
+        // Les noms de contraintes sont uniques dans toute la base : on les préfixe aussi
+        $sql = (string)preg_replace('/CONSTRAINT `(\w+)`/', 'CONSTRAINT `rt_$1`', $sql);
+        $names = implode('|', array_map('preg_quote', $tables));
+        if (preg_match('/(CREATE TABLE|INSERT INTO|LOCK TABLES|ALTER TABLE|REFERENCES)\s+`(' . $names . ')`/', $sql, $m)) {
+            throw new \RuntimeException('Refus : une instruction vise encore une table réelle (' . $m[2] . ').');
+        }
+        $tmp = self::dir() . '/restore-test.sql';
+        file_put_contents($tmp, $sql);
+
+        foreach ($tables as $t) {
+            self::dropShadowTable($t);
+        }
+        $dsn = (string)Config::get('db.dsn');
+        preg_match('/host=([^;]+)/', $dsn, $h);
+        preg_match('/dbname=([^;]+)/', $dsn, $d);
+        putenv('MYSQL_PWD=' . (string)Config::get('db.pass'));
+        $cmd = sprintf('mysql -h %s -u %s %s < %s 2> %s', escapeshellarg($h[1] ?? 'localhost'), escapeshellarg((string)Config::get('db.user')), escapeshellarg($d[1] ?? ''), escapeshellarg($tmp), escapeshellarg($tmp . '.err'));
+        exec($cmd, $unused, $code);
+        putenv('MYSQL_PWD');
+        $err = is_file($tmp . '.err') ? trim((string)file_get_contents($tmp . '.err')) : '';
+        @unlink($tmp);
+        @unlink($tmp . '.err');
+        $log[] = 'archive : ' . $run['file'] . ' — import mysql : code ' . $code . ($err !== '' ? ' (' . mb_substr($err, 0, 200) . ')' : '');
+
+        $diffs = [];
+        try {
+            if ($code === 0) {
+                foreach ($tables as $t) {
+                    $live = (int)Database::value('SELECT COUNT(*) FROM `' . $t . '`');
+                    $copy = (int)Database::value('SELECT COUNT(*) FROM `rt_' . $t . '`');
+                    // La sauvegarde elle-même ajoute 1 ligne à l'audit après le dump : écart attendu de 1 au plus
+                    $expectedGap = $t === 'audit_log' ? ($live - $copy >= 0 && $live - $copy <= 1) : $live === $copy;
+                    if (!$expectedGap) {
+                        $diffs[] = "$t : base $live ligne(s), restauration $copy";
+                    }
+                }
+            }
+        } finally {
+            foreach ($tables as $t) {
+                self::dropShadowTable($t);
+            }
+        }
+        $log[] = count($tables) . ' tables comparées, ' . count($diffs) . ' écart(s)';
+        return ['ok' => $code === 0 && $diffs === [], 'tables' => count($tables), 'diffs' => $diffs, 'log' => $log];
+    }
+
+    /** Supprime une table témoin rt_* (contraintes désactivées : elles se référencent entre elles). Ne touche jamais aux vraies tables. */
+    private static function dropShadowTable(string $table): void
+    {
+        $pdo = Database::pdo();
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+        try {
+            $pdo->exec('DROP TABLE IF EXISTS `rt_' . $table . '`');
+        } finally {
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+        }
+    }
+
+    private static function upload(string $file, array $ftp, ?string $remoteName = null): string
+    {
+        $url = 'ftp://' . $ftp['host'] . '/' . trim((string)($ftp['dir'] ?? ''), '/') . '/' . ($remoteName ?? basename($file));
         $fh = fopen($file, 'rb');
         $ch = curl_init($url);
         curl_setopt_array($ch, [

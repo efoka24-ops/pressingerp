@@ -24,7 +24,7 @@ final class PaymentService
 
         return Database::transaction(function () use ($clientId, $method, $amount, $orderId, $invoiceId, $reference, $session): int {
             if ($orderId !== null) {
-                $o = Database::one('SELECT total, paid FROM orders WHERE id = ? FOR UPDATE', [$orderId]) ?? throw new \DomainException('Commande introuvable.');
+                $o = Database::one('SELECT total, paid FROM orders WHERE id = ?' . Auth::scopeSql() . ' FOR UPDATE', [$orderId]) ?? throw new \DomainException('Commande introuvable.');
                 $balance = (int)$o['total'] - (int)$o['paid'];
                 if ($amount > $balance) {
                     throw new \DomainException('Montant supérieur au solde (' . money($balance, true) . ').');

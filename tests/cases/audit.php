@@ -106,3 +106,20 @@ test('audit : la chaîne est signée quand une clé est configurée', function (
     \App\Core\Config::load($orig);
     ok($h1 !== $h2, 'le hachage doit dépendre de la clé');
 });
+
+test('audit : la suppression de lignes déjà ancrées est détectée', function () {
+    $orig = \App\Core\Config::all();
+    $f = sys_get_temp_dir() . '/audit-anchor-' . bin2hex(random_bytes(4));
+    \App\Core\Config::load(array_replace_recursive($orig, ['audit' => ['anchor' => $f]]));
+    try {
+        Audit::log('test.anchor', 'x', 1);
+        $a = Audit::writeAnchor();
+        ok($a !== null, 'ancre écrite');
+        same(null, Audit::verify()['broken_id'], 'ancre cohérente');
+        file_put_contents($f, json_encode(['id' => $a['id'] + 1000000, 'hash' => 'x', 'at' => now()]));
+        ok(Audit::verify()['broken_id'] !== null, 'ancre sur une ligne disparue doit être détectée');
+    } finally {
+        @unlink($f);
+        \App\Core\Config::load($orig);
+    }
+});

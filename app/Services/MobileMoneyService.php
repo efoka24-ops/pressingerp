@@ -22,7 +22,7 @@ final class MobileMoneyService
         }
         $msisdn = self::normalizePhone($phone);
 
-        $o = Database::one('SELECT id, number, client_id, total, paid, status FROM orders WHERE id = ?', [$orderId]) ?? throw new \DomainException('Commande introuvable.');
+        $o = Database::one('SELECT id, number, client_id, total, paid, status FROM orders WHERE id = ?' . Auth::scopeSql(), [$orderId]) ?? throw new \DomainException('Commande introuvable.');
         if (in_array($o['status'], ['annule', 'retire', 'livre'], true)) {
             throw new \DomainException('Cette commande n\'accepte plus de paiement.');
         }

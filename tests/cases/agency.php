@@ -42,3 +42,27 @@ test('agence : un comptoir ne peut pas ouvrir la commande d\'une autre agence', 
     Auth::actAs(fx_user('direction', $a));
     same($orderB, (int)$find->invoke($ctl, $orderB)['id'], 'la direction voit tout');
 });
+
+test('agence : annulation, encaissement et Mobile Money refusés hors de son agence', function () {
+    $a = fx_agency();
+    $b = fx_agency();
+    $orderB = fx_order($b, fx_client());
+    $clientB = (int)\App\Core\Database::value('SELECT client_id FROM orders WHERE id = ?', [$orderB]);
+
+    Auth::actAs(fx_user('manager', $a));
+    throws(fn() => (new \App\Services\OrderService())->cancel($orderB, 'test'), 'introuvable');
+    Auth::actAs(fx_user('comptoir', $a));
+    throws(fn() => (new \App\Services\PaymentService())->record($clientB, \App\Domain\PaymentMethod::Orange, 1000, orderId: $orderB, viaGateway: true), 'introuvable');
+    throws(fn() => (new \App\Services\MobileMoneyService())->initiate($orderB, \App\Domain\PaymentMethod::Orange, '670123456'), 'introuvable');
+
+    Auth::actAs(fx_user('direction', $a));
+    $id = (new \App\Services\PaymentService())->record($clientB, \App\Domain\PaymentMethod::Orange, 1000, orderId: $orderB, viaGateway: true);
+    ok($id > 0, 'la direction encaisse toutes les agences');
+});
+
+test('agence : le responsable d\'agence n\'a pas les modules non filtrables par agence', function () {
+    foreach (['bi', 'commercial', 'marketing'] as $m) {
+        ok(!Role::Manager->can($m), $m);
+    }
+    ok(Role::Manager->can('orders', 'validate') && Role::Manager->can('cash') && Role::Manager->can('cockpit'));
+});

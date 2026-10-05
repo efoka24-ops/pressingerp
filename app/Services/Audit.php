@@ -8,10 +8,11 @@ use App\Core\Config;
 use App\Core\Database;
 
 /**
- * Journal d'audit en ajout seul (triggers MySQL) avec chaîne de hachage :
+ * Journal d'audit en ajout seul avec chaîne de hachage :
  * chaque ligne contient le hachage de la précédente, signé par une clé secrète (audit.key, absente de la base) :
- * modifier ou supprimer une ligne au milieu du journal est détecté par verify(). Limite connue : la suppression
- * des dernières lignes seules ne se détecte pas sans ancrage externe (les sauvegardes servent de référence).
+ * modifier ou supprimer une ligne au milieu du journal est détecté par verify(). La sauvegarde ancre la dernière ligne
+ * hors base (audit.anchor, copié avec l'archive) : supprimer ensuite des lignes déjà ancrées est détecté. Seules les
+ * lignes écrites depuis la dernière sauvegarde peuvent encore être retirées sans trace.
  */
 final class Audit
 {
@@ -85,6 +86,40 @@ final class Audit
             $prev = (string)$r['hash'];
             $n++;
         }
+        // Ancrage : la dernière sauvegarde a noté (id, hachage) ; ces lignes doivent toujours exister, à l'identique
+        $anchor = self::readAnchor();
+        if ($anchor !== null) {
+            $row = Database::one('SELECT hash FROM audit_log WHERE id = ?', [$anchor['id']]);
+            if (!$row || !hash_equals((string)$row['hash'], (string)$anchor['hash'])) {
+                return ['checked' => $n, 'broken_id' => (int)$anchor['id']];
+            }
+        }
         return ['checked' => $n, 'broken_id' => null];
+    }
+
+    public static function anchorPath(): string
+    {
+        return (string)(Config::get('audit.anchor') ?: BASE_PATH . '/storage/audit.anchor');
+    }
+
+    /** @return ?array{id:int,hash:string,at:string} */
+    public static function readAnchor(): ?array
+    {
+        $f = self::anchorPath();
+        $d = is_file($f) ? json_decode((string)file_get_contents($f), true) : null;
+        return is_array($d) && isset($d['id'], $d['hash']) ? $d : null;
+    }
+
+    /** Note la dernière ligne du journal dans un fichier hors base (appelé par la sauvegarde). */
+    public static function writeAnchor(): ?array
+    {
+        $r = Database::one('SELECT id, hash FROM audit_log WHERE hash IS NOT NULL ORDER BY id DESC LIMIT 1');
+        if (!$r) {
+            return null;
+        }
+        $a = ['id' => (int)$r['id'], 'hash' => $r['hash'], 'at' => now()];
+        @mkdir(dirname(self::anchorPath()), 0750, true);
+        file_put_contents(self::anchorPath(), json_encode($a));
+        return $a;
     }
 }
