@@ -93,7 +93,7 @@ $ob = $objectives;
       <div class="card kpi"><span class="l">Encaissé</span><span class="v" style="font-size:18px"><?= money($m['cashed']) ?></span><span class="small muted">dont Mobile Money <?= $m['momo_share'] ?> %</span></div>
       <div class="card kpi"><span class="l">Créances</span><span class="v" style="font-size:18px"><?= short_money($m['receivables']) ?></span><span class="small <?= $m['receivables_old'] ? 'red' : 'muted' ?>"><?= short_money($m['receivables_old']) ?> &gt; 60 j</span></div>
       <div class="card kpi"><span class="l">Reprises</span><span class="v" style="font-size:18px"><?= $m['reworks'] ?></span><span class="small muted"><?= $m['incidents'] ?> incident(s) · <?= $m['complaints'] ?> réclamation(s)</span></div>
-      <div class="card kpi"><span class="l">Non retirées</span><span class="v" style="font-size:18px"><?= $m['uncollected'] ?></span><span class="small muted"><?= money($m['uncollected_amount']) ?> FCFA · <?= $m['uncollected_old'] ?> &gt; J+15</span></div>
+      <a class="card kpi" href="/commandes/non-retirees" style="color:inherit;text-decoration:none"><span class="l">Non retirées</span><span class="v" style="font-size:18px"><?= $m['uncollected'] ?></span><span class="small muted"><?= money($m['uncollected_amount']) ?> FCFA · <?= $m['uncollected_old'] ?> &gt; J+15</span></a>
     </div>
     <div class="card pad form">
       <div class="card-h"><h2>Objectifs — <?= e(month_name(date('Y-m'))) ?></h2><span class="small muted">J<?= $ob['day'] ?> / <?= $ob['days'] ?></span></div>

@@ -62,10 +62,10 @@ final class AdminController extends Controller
         }
         $id = Database::insert('users', [
             'agency_id' => $agency, 'name' => $f['name'], 'login' => $f['login'], 'role' => $role->value, 'active' => 1,
-            'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'pin_hash' => $pin !== '' ? password_hash($pin, PASSWORD_DEFAULT) : null,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'pin_hash' => $pin !== '' ? password_hash($pin, PASSWORD_DEFAULT) : null, 'must_change_password' => 1,
         ]);
         Audit::log('user.create', 'users', $id, ['login' => $f['login']], null, ['role' => $role->value, 'agency_id' => $agency]);
-        $this->ok("Utilisateur créé. Mot de passe : $password (affiché une seule fois).", '/admin/utilisateurs');
+        $this->ok("Utilisateur créé. Mot de passe provisoire : $password (affiché une seule fois ; il devra le changer à sa première connexion).", '/admin/utilisateurs');
     }
 
     public function updateUser(string $id): void
@@ -148,7 +148,7 @@ final class AdminController extends Controller
                     $password = substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 12);
                     $uid = Database::insert('users', [
                         'agency_id' => $newId, 'name' => $mName, 'login' => $mLogin, 'role' => Role::Manager->value, 'active' => 1,
-                        'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                        'password_hash' => password_hash($password, PASSWORD_DEFAULT), 'must_change_password' => 1,
                     ]);
                     Audit::log('user.create', 'users', $uid, ['login' => $mLogin], null, ['role' => Role::Manager->value, 'agency_id' => $newId]);
                 }

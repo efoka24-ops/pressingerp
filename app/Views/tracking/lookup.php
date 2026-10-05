@@ -1,6 +1,6 @@
 <div class="form" style="margin-top:12px">
   <h1 style="font-size:24px">Suivre ma commande</h1>
-  <span class="muted">Saisissez le numéro inscrit sur votre ticket et votre téléphone.</span>
+  <span class="muted">Saisissez le numéro inscrit sur votre ticket (ou le code d'une étiquette de vos vêtements) et le téléphone donné à l'agence. Vous verrez où en est votre commande et l'historique de ce qui a été fait.</span>
   <form method="post" action="/suivi" class="card pad form">
     <?= csrf_field() ?>
     <div class="field"><label>N° de commande</label><input class="input lg mono" name="number" value="<?= e(old('number')) ?>" placeholder="PR-2026-000124" required></div>

@@ -203,6 +203,7 @@ final class OrderService
         LoyaltyService::award((int)$o['client_id'], (int)$o['total']);
         $points = (int)Database::value('SELECT loyalty_points FROM clients WHERE id = ?', [$o['client_id']]);
         MessageService::queueEvent('closed', (int)$o['client_id'], ['numero' => $o['number'], 'fidelite' => $points > 0 ? "Vos points fidélité : $points." : ''], $orderId);
+        ReminderService::cancelFor($orderId);
         Audit::log($final === 'livre' ? 'order.delivered' : 'order.pickup', 'orders', $orderId);
     }
 
@@ -262,6 +263,7 @@ final class OrderService
             throw new \DomainException('Motif d\'annulation obligatoire.');
         }
         Database::update('orders', ['status' => 'annule', 'notes' => trim(($o['notes'] ?? '') . "\nAnnulée : " . $reason)], 'id = :id', ['id' => $orderId]);
+        ReminderService::cancelFor($orderId);
         Audit::log('order.cancel', 'orders', $orderId, [], ['status' => $o['status']], ['status' => 'annule'], $reason);
     }
 }

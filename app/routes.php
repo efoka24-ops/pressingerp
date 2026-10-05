@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
+use App\Controllers\AccountController;
 use App\Controllers\AdminController;
+use App\Controllers\AgencyRequestController;
 use App\Controllers\AlertController;
 use App\Controllers\AuthController;
 use App\Controllers\BIController;
@@ -31,6 +33,12 @@ $r = new Router();
 $r->get('/login', [AuthController::class, 'form']);
 $r->post('/login', [AuthController::class, 'login']);
 $r->post('/logout', [AuthController::class, 'logout'], 'auth');
+$r->get('/mot-de-passe', [AccountController::class, 'form'], 'auth');
+$r->post('/mot-de-passe', [AccountController::class, 'change'], 'auth');
+$r->post('/agence/changer', [AuthController::class, 'switchAgency'], 'auth');
+$r->get('/ouvrir-un-pressing', [AgencyRequestController::class, 'form']);
+$r->post('/ouvrir-un-pressing', [AgencyRequestController::class, 'submit']);
+$r->get('/ouvrir-un-pressing/merci', [AgencyRequestController::class, 'thanks']);
 
 // Accueils
 $r->get('/', [HomeController::class, 'index'], 'auth');
@@ -50,6 +58,7 @@ $r->get('/api/clients', [ClientController::class, 'lookup'], 'orders');
 // 02 Commandes
 $r->get('/commandes', [OrderController::class, 'index'], 'orders');
 $r->get('/commandes/nouvelle', [OrderController::class, 'create'], 'orders');
+$r->get('/commandes/non-retirees', [OrderController::class, 'uncollected'], 'orders');
 $r->post('/commandes', [OrderController::class, 'store'], 'orders');
 $r->post('/api/devis', [OrderController::class, 'quote'], 'orders');
 $r->get('/commandes/{id}', [OrderController::class, 'show'], 'orders');
@@ -145,6 +154,9 @@ $r->get('/admin/utilisateurs', [AdminController::class, 'users'], 'admin');
 $r->post('/admin/utilisateurs', [AdminController::class, 'createUser'], 'admin:create');
 $r->post('/admin/utilisateurs/{id}', [AdminController::class, 'updateUser'], 'admin:update');
 $r->post('/admin/utilisateurs/{id}/mot-de-passe', [AdminController::class, 'resetPassword'], 'admin:update');
+$r->get('/admin/demandes', [AgencyRequestController::class, 'index'], 'admin');
+$r->post('/admin/demandes/{id}/valider', [AgencyRequestController::class, 'approve'], 'admin:update');
+$r->post('/admin/demandes/{id}/refuser', [AgencyRequestController::class, 'reject'], 'admin:update');
 $r->get('/admin/agences', [AdminController::class, 'agencies'], 'admin');
 $r->post('/admin/agences', [AdminController::class, 'saveAgency'], 'admin:create');
 $r->post('/admin/agences/{id}', [AdminController::class, 'saveAgency'], 'admin:update');

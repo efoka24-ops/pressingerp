@@ -21,6 +21,9 @@ final class MessageService
         'delivery_started' => ['numero', 'creneau', 'code', 'livreur', 'lien'],
         'delivery_failed'  => ['numero', 'motif', 'creneau'],
         'closed'           => ['numero', 'fidelite'],
+        'reminder1'        => ['numero', 'jours', 'solde', 'lien'],
+        'reminder2'        => ['numero', 'jours', 'solde', 'lien'],
+        'reminder3'        => ['numero', 'jours', 'solde', 'lien'],
     ];
 
     private const RETRY_MINUTES = [1 => 5];   // après le 1er échec d'un canal, nouvel essai 5 min plus tard ; au 2e échec, repli

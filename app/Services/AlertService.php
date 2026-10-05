@@ -220,6 +220,10 @@ final class AlertService
         }
         self::sync('delivery_failed', $wanted, $now);
 
+        // Relances des commandes non retirées (J+2, J+7, J+15) et alerte du responsable au seuil
+        ReminderService::run($now);
+        self::sync('uncollected', ReminderService::managerAlerts($now), $now);
+
         // Encours client au-dessus du plafond
         $wanted = [];
         foreach (Database::all("SELECT id, name, credit_limit FROM clients WHERE type = 'pro' AND credit_limit > 0") as $c) {

@@ -22,7 +22,8 @@ final class TrackingController extends Controller
 
     public function find(): void
     {
-        $number = strtoupper($this->str('number'));
+        // Le numéro du ticket ou le code d'une pièce (PR-2026-000124-02) mène à la même commande
+        $number = preg_replace('/^(PR-\d{4}-\d{6})-\d{2,}$/', '$1', strtoupper(preg_replace('/\s+/', '', $this->str('number'))));
         $phone = ClientService::normalizePhone($this->str('phone'));
         $token = Database::value('SELECT o.tracking_token FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.number = ? AND c.phone = ?', [$number, $phone]);
         if (!$token) {
@@ -49,10 +50,48 @@ final class TrackingController extends Controller
             'o'        => $o,
             'garments' => $garments,
             'stage'    => $stage,
+            'history'  => $this->history($o),
             'balance'  => (int)$o['on_account'] ? 0 : max(0, (int)$o['total'] - (int)$o['paid']),
             'fee'      => (int)Config::get('delivery_fee', 0),
             'checkout' => (string)Config::get('mobile_money.checkout_url', ''),
         ], 'public');
+    }
+
+    /**
+     * Historique des actions sur la commande, en termes que le client comprend (aucun nom d'agent ni note interne).
+     * @return list<array{0:string,1:string}> [horodatage, texte], du plus ancien au plus récent
+     */
+    private function history(array $o): array
+    {
+        $id = (int)$o['id'];
+        $n = (int)Database::value('SELECT COUNT(*) FROM garments WHERE order_id = ?', [$id]);
+        $ev = [[$o['created_at'], 'Commande enregistrée (' . $n . ' pièce' . ($n > 1 ? 's' : '') . ')']];
+        foreach (Database::all(
+            "SELECT e.step, MIN(e.created_at) ts FROM garment_events e JOIN garments g ON g.id = e.garment_id WHERE g.order_id = ? AND e.step NOT IN ('reception', 'retire', 'pret') GROUP BY e.step",
+            [$id]
+        ) as $r) {
+            $step = Step::tryFrom($r['step']);
+            if ($step) {
+                $ev[] = [$r['ts'], 'Étape « ' . $step->label() . ' »'];
+            }
+        }
+        foreach (Database::all("SELECT amount, method, created_at FROM payments WHERE order_id = ? AND kind = 'payment' AND amount > 0 ORDER BY id", [$id]) as $p) {
+            $ev[] = [$p['created_at'], 'Paiement reçu : ' . money($p['amount'], true)];
+        }
+        if ($o['ready_at']) {
+            $ev[] = [$o['ready_at'], 'Commande prête'];
+        }
+        $labels = ['en_route' => 'Le livreur est en route', 'livre' => 'Livraison effectuée', 'non_livre' => 'Livraison non aboutie, une nouvelle tentative sera proposée', 'a_livrer' => 'Livraison programmée'];
+        foreach (Database::all("SELECT e.status, e.created_at FROM delivery_events e JOIN deliveries d ON d.id = e.delivery_id WHERE d.order_id = ? ORDER BY e.id", [$id]) as $d) {
+            if (isset($labels[$d['status']])) {
+                $ev[] = [$d['created_at'], $labels[$d['status']]];
+            }
+        }
+        if ($o['picked_up_at']) {
+            $ev[] = [$o['picked_up_at'], $o['status'] === 'livre' ? 'Commande livrée' : 'Commande retirée'];
+        }
+        usort($ev, fn($a, $b) => strcmp($a[0], $b[0]));
+        return $ev;
     }
 
     public function delivery(string $token): void

@@ -50,6 +50,15 @@ $headline = match ($stage) {
   <?php endif ?>
 <?php endif ?>
 
+<?php if ($history): ?>
+<div class="card pad">
+  <b>Historique de ma commande</b>
+  <?php foreach ($history as [$at, $text]): ?>
+    <div class="kv small"><span><?= e($text) ?></span><span class="mono muted"><?= dt($at, 'd/m H:i') ?></span></div>
+  <?php endforeach ?>
+</div>
+<?php endif ?>
+
 <?php if ($o['agency_phone']): ?>
   <div class="center small muted">Une question ? <a href="https://wa.me/<?= e(preg_replace('/\D/', '', $o['agency_phone'])) ?>">WhatsApp l'agence</a> · <a href="tel:<?= e($o['agency_phone']) ?>">Appeler</a></div>
 <?php endif ?>

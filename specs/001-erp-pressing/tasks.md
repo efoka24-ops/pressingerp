@@ -100,9 +100,9 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T104 Tests : « Livré » sans preuve refusé
 
 ## Phase 9 — Non retirés (US9)
-- [ ] T110 `bin/reminders.php` : J+2, J+7, J+15 paramétrables, annulation au retrait
-- [ ] T111 Alerte manager au seuil ; injoignable (SE12)
-- [ ] T112 Tests de calendrier
+- [x] T110 `bin/reminders.php` : J+2, J+7, J+15 paramétrables, annulation au retrait
+- [x] T111 Alerte manager au seuil ; injoignable (SE12)
+- [x] T112 Tests de calendrier
 
 ## Phase 10 — Recouvrement et facturation (US10)
 - [ ] T120 TVA et NIU sur factures, numérotation continue (D5), après avis du comptable

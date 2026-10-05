@@ -15,6 +15,7 @@ use App\Services\DeliveryService;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\PricingService;
+use App\Services\ReminderService;
 use App\Services\Uploads;
 
 final class OrderController extends Controller
@@ -81,6 +82,12 @@ final class OrderController extends Controller
             'ag'       => $ag,
             'agencies' => Database::all('SELECT id, name FROM agencies WHERE is_workshop = 0 ORDER BY id'),
         ]);
+    }
+
+    /** Tableau des commandes prêtes non retirées : nombre, valeur et ancienneté par tranche. */
+    public function uncollected(): void
+    {
+        $this->view('orders/uncollected', ['title' => 'Commandes non retirées'] + ReminderService::overview(Auth::scopedAgencyId() ?: 0) + ['levels' => ReminderService::levels()]);
     }
 
     public function create(): void

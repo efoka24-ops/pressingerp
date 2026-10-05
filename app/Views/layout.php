@@ -40,6 +40,7 @@ $alertCount = $u ? \App\Services\AlertService::count($u) : 0;
     <header class="top">
       <form action="/recherche"><input class="input" name="q" placeholder="Téléphone, nom, n° commande, QR pièce, facture…  (F2)" value="<?= e($path === '/recherche' ? ($_GET['q'] ?? '') : '') ?>" autocomplete="off"></form>
       <?php if (Auth::can('orders')): ?><a class="btn primary" href="/commandes/nouvelle">+ Commande <span class="mono small" style="opacity:.7">F1</span></a> <a class="btn" href="/hors-ligne" title="Saisir des commandes sans réseau">Hors-ligne</a><?php endif ?>
+      <?php if (Auth::role()?->canSwitchAgency()): ?><form method="post" action="/agence/changer" style="display:flex;gap:4px"><?= csrf_field() ?><select class="input" name="agency_id" onchange="this.form.submit()" title="Agence de travail"><?php foreach (\App\Core\Database::all('SELECT id, name FROM agencies ORDER BY is_workshop, name') as $ag): ?><option value="<?= (int)$ag['id'] ?>"<?= (int)$ag['id'] === Auth::agencyId() ? ' selected' : '' ?>><?= e($ag['name']) ?></option><?php endforeach ?></select></form><?php endif ?>
       <a class="btn" href="/alertes" id="alert-bell" style="margin-left:auto" title="Alertes">Alertes<?php if ($alertCount): ?> <span class="count" id="alert-count"><?= $alertCount ?></span><?php endif ?></a>
       <span class="mono small muted"><?= e(day_name()) ?> <?= date('d/m/Y · H:i') ?></span>
     </header>

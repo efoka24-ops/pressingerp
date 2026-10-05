@@ -104,6 +104,10 @@ final class Auth
             }
             redirect('/login');
         }
+        // Mot de passe provisoire : rien d'autre que le changement de mot de passe et la déconnexion tant qu'il n'est pas remplacé
+        if (!empty(self::user()['must_change_password']) && !in_array(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH), ['/mot-de-passe', '/logout'], true)) {
+            redirect('/mot-de-passe');
+        }
         if ($perm === 'auth') {
             return;
         }

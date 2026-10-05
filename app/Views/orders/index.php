@@ -1,6 +1,6 @@
 <?php use App\Domain\OrderStatus; use App\Domain\ServiceLevel; ?>
 <div class="head">
-  <span class="mono small muted">02</span><h1>Commandes</h1>
+  <span class="mono small muted">02</span><h1>Commandes</h1><a class="small" href="/commandes/non-retirees">Non retirées : tableau et relances</a>
   <div class="actions"><a class="btn primary" href="/commandes/nouvelle">+ Nouvelle commande</a></div>
 </div>
 
