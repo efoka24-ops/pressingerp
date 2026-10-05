@@ -6,14 +6,42 @@ namespace App\Services;
 use App\Core\Auth;
 use App\Core\Database;
 use App\Domain\GarmentStatus;
+use App\Domain\IncidentType;
 use App\Domain\Step;
 
-/** Machine à états des pièces : prise en charge, fin d'étape, incident, saut d'étape. */
+/** Machine à états des pièces : prise en charge, fin d'étape, incident, saut d'étape, parcours par traitement. */
 final class WorkflowService
 {
+    /** Étapes de travail d'un parcours complet (entre le tri et le contrôle qualité). */
+    public const WORK_STEPS = ['detachage', 'lavage', 'sechage', 'repassage', 'finition'];
+
     public function garment(int $id): array
     {
         return Database::one('SELECT * FROM garments WHERE id = ?', [$id]) ?? throw new \DomainException('Pièce introuvable.');
+    }
+
+    /**
+     * Parcours prévu pour une pièce : tri, étapes de travail du traitement, puis contrôle, emballage, prêt, retiré.
+     * Sans traitement connu, parcours complet.
+     * @return list<Step>
+     */
+    public static function route(?int $treatmentId): array
+    {
+        $csv = $treatmentId ? Database::value('SELECT steps FROM treatments WHERE id = ? AND active = 1', [$treatmentId]) : null;
+        $work = $csv ? array_map(fn($s) => Step::from($s), array_filter(explode(',', (string)$csv))) : array_map(fn($s) => Step::from($s), self::WORK_STEPS);
+        return [Step::Tri, ...$work, Step::Controle, Step::Emballage, Step::Pret, Step::Retire];
+    }
+
+    /** Étape suivante : la première du parcours située après l'étape courante (gère aussi les reprises vers une étape hors parcours). */
+    public static function nextStep(array $garment): ?Step
+    {
+        $current = Step::from($garment['step']);
+        foreach (self::route(isset($garment['treatment_id']) ? (int)$garment['treatment_id'] : null) as $s) {
+            if ($s->index() > $current->index()) {
+                return $s;
+            }
+        }
+        return null;
     }
 
     public function start(int $id): void
@@ -24,8 +52,10 @@ final class WorkflowService
             throw new \DomainException('Pièce déjà prise en charge, bloquée ou terminée.');
         }
         $this->guardWorkshopStep($g);
-        Database::update('garments', ['status' => GarmentStatus::EnCours->value, 'assigned_to' => Auth::id() ?: null, 'updated_at' => now()], 'id = :id', ['id' => $id]);
-        self::log($id, Step::from($g['step']), 'prise_en_charge');
+        Database::transaction(function () use ($id, $g): void {
+            Database::update('garments', ['status' => GarmentStatus::EnCours->value, 'assigned_to' => Auth::id() ?: null, 'updated_at' => now()], 'id = :id', ['id' => $id]);
+            self::log($id, Step::from($g['step']), 'prise_en_charge');
+        });
     }
 
     public function complete(int $id, ?string $machine = null, ?string $rail = null): void
@@ -33,14 +63,26 @@ final class WorkflowService
         $g = $this->garment($id);
         $step = Step::from($g['step']);
         $this->guardWorkshopStep($g);
-        if ($g['status'] === GarmentStatus::Bloque->value) {
+        $status = GarmentStatus::from($g['status']);
+        if ($status === GarmentStatus::Bloque) {
             throw new \DomainException('Pièce bloquée : levez l\'incident d\'abord.');
         }
         if ($step === Step::Emballage && ($rail === null || $rail === '')) {
             throw new \DomainException('Indiquez l\'emplacement de rangement (rail).');
         }
-        self::log($id, $step, 'termine', null, $machine);
-        $this->moveTo($id, $step->next(), GarmentStatus::ATraiter, $rail);
+        if (in_array($status, [GarmentStatus::ATraiter, GarmentStatus::AReprendre], true)) {
+            // Terminer en un geste reste possible, mais la prise en charge est toujours tracée (opérateur + heure)
+            $this->start($id);
+            $g = $this->garment($id);
+        } elseif ($g['assigned_to'] && (int)$g['assigned_to'] !== Auth::id() && !Auth::can('production', 'validate')) {
+            $who = (string)Database::value('SELECT name FROM users WHERE id = ?', [$g['assigned_to']]);
+            throw new \DomainException("Pièce prise en charge par $who : seul un superviseur peut la terminer à sa place.");
+        }
+        $next = self::nextStep($g) ?? throw new \DomainException('Aucune étape suivante.');
+        Database::transaction(function () use ($id, $step, $machine, $next, $rail): void {
+            self::log($id, $step, 'termine', null, $machine);
+            $this->moveTo($id, $next, GarmentStatus::ATraiter, $rail);
+        });
     }
 
     /** Étape non nécessaire pour cette pièce (ex. pas de tache → pas de détachage). */
@@ -51,28 +93,56 @@ final class WorkflowService
         if (!in_array($step, [Step::Detachage, Step::Sechage, Step::Finition], true)) {
             throw new \DomainException('Cette étape ne peut pas être sautée.');
         }
-        self::log($id, $step, 'non_applicable');
-        $this->moveTo($id, $step->next(), GarmentStatus::ATraiter);
+        $next = self::nextStep($g) ?? throw new \DomainException('Aucune étape suivante.');
+        Database::transaction(function () use ($id, $step, $next): void {
+            self::log($id, $step, 'non_applicable');
+            $this->moveTo($id, $next, GarmentStatus::ATraiter);
+        });
     }
 
-    public function block(int $id, string $note): void
+    /** Signale un incident typé : la pièce est bloquée jusqu'à sa levée. */
+    public function block(int $id, IncidentType $type, string $note): int
     {
         $g = $this->garment($id);
-        if (trim($note) === '') {
+        $note = trim($note);
+        if ($note === '') {
             throw new \DomainException('Décrivez l\'incident.');
         }
-        Database::update('garments', ['status' => GarmentStatus::Bloque->value, 'updated_at' => now()], 'id = :id', ['id' => $id]);
-        self::log($id, Step::from($g['step']), 'incident', $note);
+        if ($g['status'] === GarmentStatus::Bloque->value) {
+            throw new \DomainException('Pièce déjà bloquée : levez d\'abord l\'incident en cours.');
+        }
+        if (in_array($g['step'], [Step::Retire->value], true)) {
+            throw new \DomainException('Pièce déjà remise au client.');
+        }
+        return Database::transaction(function () use ($id, $g, $type, $note): int {
+            $incident = Database::insert('incidents', [
+                'garment_id' => $id, 'step' => $g['step'], 'type' => $type->value, 'severity' => $type->critical() ? 'critical' : 'normal',
+                'note' => mb_substr($note, 0, 255), 'reported_by' => Auth::id() ?: null, 'created_at' => now(),
+            ]);
+            Database::update('garments', ['status' => GarmentStatus::Bloque->value, 'updated_at' => now()], 'id = :id', ['id' => $id]);
+            self::log($id, Step::from($g['step']), 'incident', $type->label() . ' — ' . $note);
+            if ($type->critical()) {
+                // RG7 : un incident critique est journalisé en priorité (l'alerte au manager arrive avec le centre d'alertes)
+                Audit::log('incident.critical', 'garments', $id, ['type' => $type->value, 'code' => $g['code']], null, null, $note);
+            }
+            return $incident;
+        });
     }
 
-    public function unblock(int $id): void
+    public function unblock(int $id, string $resolution = ''): void
     {
         $g = $this->garment($id);
         if ($g['status'] !== GarmentStatus::Bloque->value) {
             throw new \DomainException('Pièce non bloquée.');
         }
-        Database::update('garments', ['status' => GarmentStatus::ATraiter->value, 'updated_at' => now()], 'id = :id', ['id' => $id]);
-        self::log($id, Step::from($g['step']), 'incident_leve');
+        Database::transaction(function () use ($id, $g, $resolution): void {
+            Database::run(
+                'UPDATE incidents SET resolved_at = ?, resolved_by = ?, resolution = ? WHERE garment_id = ? AND resolved_at IS NULL',
+                [now(), Auth::id() ?: null, mb_substr(trim($resolution), 0, 255) ?: null, $id]
+            );
+            Database::update('garments', ['status' => GarmentStatus::ATraiter->value, 'updated_at' => now()], 'id = :id', ['id' => $id]);
+            self::log($id, Step::from($g['step']), 'incident_leve', trim($resolution) ?: null);
+        });
     }
 
     public function moveTo(int $id, Step $to, GarmentStatus $status, ?string $rail = null, ?string $note = null): void
@@ -114,6 +184,26 @@ final class WorkflowService
             'SELECT e.*, u.name AS user FROM garment_events e LEFT JOIN users u ON u.id = e.user_id WHERE e.garment_id = ? ORDER BY e.created_at DESC, e.id DESC',
             [$garmentId]
         );
+    }
+
+    /**
+     * Recherche manuelle quand le QR est illisible (SE5) : code exact, numéro de commande, ou fragment de code.
+     * @return list<array> pièces candidates (la première est la correspondance exacte s'il y en a une)
+     */
+    public static function findGarments(string $q): array
+    {
+        $q = strtoupper(trim($q));
+        if (mb_strlen($q) < 3) {
+            return [];
+        }
+        $sql = "SELECT g.id, g.code, g.label, g.step, g.status, o.number, c.name client
+                FROM garments g JOIN orders o ON o.id = g.order_id JOIN clients c ON c.id = o.client_id";
+        $exact = Database::all("$sql WHERE g.code = ?", [$q]);
+        if ($exact) {
+            return $exact;
+        }
+        $like = '%' . addcslashes($q, '%_\\') . '%';
+        return Database::all("$sql WHERE o.number = ? OR g.code LIKE ? ORDER BY g.id DESC LIMIT 12", [$q, $like]);
     }
 
     private function guardWorkshopStep(array $g): void

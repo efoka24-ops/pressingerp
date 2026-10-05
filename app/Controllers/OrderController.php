@@ -93,6 +93,7 @@ final class OrderController extends Controller
             'articles' => Database::all('SELECT id, name, price, unit, fragile FROM articles WHERE active = 1 ORDER BY sort, name'),
             'levels'   => ServiceLevel::cases(),
             'methods'  => PaymentMethod::counter(),
+            'treatments' => Database::all('SELECT id, code, label, steps FROM treatments WHERE active = 1 ORDER BY sort, id'),
         ]);
     }
 

@@ -9,6 +9,7 @@ use App\Controllers\ClientController;
 use App\Controllers\CommercialController;
 use App\Controllers\GarmentController;
 use App\Controllers\HomeController;
+use App\Controllers\LossController;
 use App\Controllers\MarketingController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductionController;
@@ -60,6 +61,9 @@ $r->get('/tracabilite', [TraceController::class, 'index'], 'trace');
 $r->get('/production', [ProductionController::class, 'index'], 'production');
 $r->get('/scan', [GarmentController::class, 'scan'], 'production');
 $r->post('/pieces/{id}/action', [GarmentController::class, 'action'], 'production');
+$r->post('/pieces/{id}/sinistre', [LossController::class, 'declare'], 'production');
+$r->get('/qualite/sinistres', [LossController::class, 'index'], 'quality');
+$r->post('/qualite/sinistres/{id}', [LossController::class, 'decide'], 'quality:validate');
 
 // 05 Qualité
 $r->get('/qualite', [QualityController::class, 'index'], 'quality');
@@ -121,6 +125,8 @@ $r->get('/admin/parametres', [AdminController::class, 'settings'], 'admin');
 $r->post('/admin/parametres', [AdminController::class, 'saveSetting'], 'admin:update');
 $r->get('/admin/audit', [AdminController::class, 'audit'], 'admin');
 $r->get('/admin/sauvegardes', [AdminController::class, 'backups'], 'admin');
+$r->get('/admin/parcours', [AdminController::class, 'routes'], 'admin');
+$r->post('/admin/parcours', [AdminController::class, 'saveRoute'], 'admin:update');
 
 // Tarifs
 $r->get('/tarifs', [TariffController::class, 'index'], 'pricing');

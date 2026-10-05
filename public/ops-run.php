@@ -35,6 +35,30 @@ try {
             $r = Backup::restoreTest();
             echo implode("\n", $r['log']), "\n", implode("\n", $r['diffs']), "\n", $r['ok'] ? 'RESTAURATION OK' : 'RESTAURATION EN ÉCHEC', "\n";
             break;
+        case 'smoke':
+            // Parcourt des pages GET en tant qu'administrateur et signale toute erreur interne avec sa cause
+            $admin = \App\Core\Database::one("SELECT id, agency_id FROM users WHERE role = 'admin' AND active = 1 ORDER BY id LIMIT 1");
+            $_SESSION['uid'] = (int)$admin['id'];
+            $_SESSION['agency_id'] = (int)$admin['agency_id'];
+            $router = require BASE_PATH . '/app/routes.php';
+            $bad = 0;
+            foreach (explode(',', (string)($_POST['paths'] ?? '/')) as $path) {
+                $_GET = [];
+                if ($q = parse_url($path, PHP_URL_QUERY)) {
+                    parse_str($q, $_GET);
+                }
+                ob_start();
+                try {
+                    $router->dispatch('GET', parse_url($path, PHP_URL_PATH) ?: '/');
+                    echo 'ok    ', $path, ' (', strlen((string)ob_get_clean()), " octets)\n";
+                } catch (Throwable $e) {
+                    ob_end_clean();
+                    $bad++;
+                    echo 'ERREUR ', $path, ' : ', get_class($e), ' : ', $e->getMessage(), ' (', basename($e->getFile()), ':', $e->getLine(), ")\n";
+                }
+            }
+            echo $bad ? "$bad page(s) en erreur\n" : "Toutes les pages répondent\n";
+            break;
         default:
             echo "Tâche inconnue.\n";
     }

@@ -20,12 +20,14 @@ final class ProductionController extends Controller
         );
         $columns = [];
         foreach (Step::production() as $s) {
-            $columns[$s->value] = ['step' => $s, 'items' => [], 'count' => 0, 'blocked' => 0];
+            $columns[$s->value] = ['step' => $s, 'items' => [], 'count' => 0, 'blocked' => 0, 'available' => 0, 'active' => 0];
         }
         foreach ($rows as $r) {
             $col = &$columns[$r['step']];
             $col['count']++;
             $col['blocked'] += $r['status'] === 'bloque' ? 1 : 0;
+            $col['available'] += in_array($r['status'], ['a_traiter', 'a_reprendre'], true) ? 1 : 0;
+            $col['active'] += $r['status'] === 'en_cours' ? 1 : 0;
             if (count($col['items']) < 40) {
                 $col['items'][] = $r;
             }

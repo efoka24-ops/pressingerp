@@ -1,7 +1,7 @@
 <?php
 use App\Domain\GarmentStatus;
 use App\Domain\Step;
-$maxCount = max(1, ...array_map(fn($c) => $c['step'] === Step::Pret ? 0 : $c['count'], $columns));
+$maxCount = max(1, ...array_values(array_map(fn($c) => $c['step'] === Step::Pret ? 0 : $c['count'], $columns)));
 ?>
 <div class="head">
   <span class="mono small muted">04</span><h1>Production</h1>
@@ -17,7 +17,7 @@ $maxCount = max(1, ...array_map(fn($c) => $c['step'] === Step::Pret ? 0 : $c['co
   <?php foreach ($columns as $key => $col): $s = $col['step']; $hot = $s !== Step::Pret && $col['count'] === $maxCount && $col['count'] >= 10; ?>
     <section class="colm <?= $hot ? 'hot' : '' ?>" id="<?= e($key) ?>">
       <h3><span><?= e($s->label()) ?></span><span class="mono muted"><?= $col['count'] ?></span></h3>
-      <?php if ($col['blocked']): ?><span class="small red"><?= $col['blocked'] ?> bloquée(s)</span><?php endif ?>
+      <span class="small muted"><b><?= $col['available'] ?></b> disponible(s) · <?= $col['active'] ?> en cours</span> <?php if ($col['blocked']): ?><span class="small red"><?= $col['blocked'] ?> bloquée(s)</span><?php endif ?>
       <?php foreach ($col['items'] as $p):
         $r = risk($p['promised_at']);
         $gs = GarmentStatus::from($p['status']);

@@ -21,7 +21,7 @@ final class BIController extends Controller
                 $matrix[$r['m']][(int)$r['agency_id']] = (int)$r['total'];
             }
         }
-        $max = max(1, ...array_map('array_sum', $matrix));
+        $max = max(1, ...array_values(array_map('array_sum', $matrix)));
 
         $mix = Database::one(
             "SELECT COALESCE(SUM(CASE WHEN on_account = 1 THEN total - delivery_fee END), 0) pros,

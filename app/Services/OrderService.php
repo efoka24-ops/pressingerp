@@ -96,6 +96,7 @@ final class OrderService
                     'seq'        => $i + 1,
                     'code'       => $code,
                     'article_id' => $l['article_id'],
+                    'treatment_id' => $l['treatment_id'] ? ((int)Database::value('SELECT id FROM treatments WHERE id = ? AND active = 1', [$l['treatment_id']]) ?: null) : null,
                     'label'      => $l['label'],
                     'qty'        => $l['qty'],
                     'price'      => $l['price'],

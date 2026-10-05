@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Domain\IncidentType;
 use App\Services\WorkflowService;
 
 /** Scan QR atelier : fiche pièce + actions d'étape */
@@ -15,6 +16,7 @@ final class GarmentController extends Controller
         $code = strtoupper($this->str('code'));
         $g = null;
         $events = [];
+        $candidates = [];
         if ($code !== '') {
             $g = Database::one(
                 "SELECT g.*, o.number, o.promised_at, o.service_level, o.status order_status, o.rail, c.name client,
@@ -28,10 +30,18 @@ final class GarmentController extends Controller
             if ($g) {
                 $events = WorkflowService::events((int)$g['id']);
             } else {
-                flash('err', "Aucune pièce pour le code $code.");
+                // QR illisible ou mal saisi : recherche par numéro de commande ou fragment de code (SE5)
+                $candidates = WorkflowService::findGarments($code);
+                flash('err', $candidates ? "Code $code non reconnu : choisissez la pièce ci-dessous." : "Aucune pièce pour « $code ».");
             }
         }
-        $this->view('garments/scan', ['title' => 'Scanner une pièce', 'code' => $code, 'g' => $g, 'events' => $events]);
+        $route = $g ? WorkflowService::route($g['treatment_id'] ? (int)$g['treatment_id'] : null) : [];
+        $this->view('garments/scan', [
+            'title' => 'Scanner une pièce', 'code' => $code, 'g' => $g, 'events' => $events, 'candidates' => $candidates,
+            'route' => $route, 'next' => $g ? WorkflowService::nextStep($g) : null,
+            'treatment' => $g && $g['treatment_id'] ? Database::value('SELECT label FROM treatments WHERE id = ?', [$g['treatment_id']]) : null,
+            'incidents' => $g ? Database::all('SELECT i.*, u.name reporter FROM incidents i LEFT JOIN users u ON u.id = i.reported_by WHERE i.garment_id = ? ORDER BY i.id DESC LIMIT 5', [$g['id']]) : [],
+        ]);
     }
 
     public function action(string $id): void
@@ -43,8 +53,8 @@ final class GarmentController extends Controller
                 'start'    => $wf->start($gid),
                 'complete' => $wf->complete($gid, $this->str('machine') ?: null, $this->str('rail') ?: null),
                 'skip'     => $wf->skip($gid),
-                'block'    => $wf->block($gid, $this->str('note')),
-                'unblock'  => $wf->unblock($gid),
+                'block'    => $wf->block($gid, IncidentType::tryFrom($this->str('type')) ?? throw new \DomainException('Choisissez le type d\'incident.'), $this->str('note')),
+                'unblock'  => $wf->unblock($gid, $this->str('resolution')),
                 default    => throw new \DomainException('Action inconnue.'),
             };
         } catch (\DomainException $e) {

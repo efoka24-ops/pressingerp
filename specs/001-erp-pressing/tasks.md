@@ -51,13 +51,13 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T049 Tests phase 2 (identification, photo, priorité tarifaire, tarif manquant, versions de prix, TVA, étiquettes, numéros) : 37 réussis au total en ligne, 0 échec. La numérotation est testée en séquence, pas en accès simultané réel
 
 ## Phase 3 — Workflow et traçabilité (US2)
-- [ ] T050 Table `treatment_routes` : parcours par traitement (remplace « étape non nécessaire » manuelle)
-- [ ] T051 Vérifier et tester RG5 (pas de prise en charge avant « Terminé ») côté serveur
-- [ ] T052 Scan : recherche manuelle si QR illisible (SE5), réponse < 2 s
-- [ ] T053 Incidents typés (9 types) au lieu de la note libre (app/Services/WorkflowService.php)
-- [ ] T054 File d'attente par poste avec nombre de pièces disponibles
-- [ ] T055 Statut « Perdu / Endommagé » et indemnisation D8
-- [ ] T056 Tests : RG5, SE7, historique complet
+- [x] T050 Parcours par traitement : tables `treatments` (5 parcours livrés) et `garments.treatment_id`, choix du traitement par pièce à la réception, étape suivante = première étape du parcours après l'étape courante (gère les reprises hors parcours), écran `/admin/parcours` avec motif et audit. Testé
+- [x] T051 RG5 : pas de prise en charge avant la fin de l'étape précédente (état par pièce) ; terminer sans prendre en charge déclenche et trace la prise en charge ; une pièce prise en charge ne se termine que par son opérateur ou un superviseur ; contrôle qualité et étapes finales fermés à l'atelier. Testé
+- [x] T052 Scan : si le QR est illisible (SE5), recherche par numéro de commande ou fragment de code avec liste de pièces à choisir (jokers neutralisés). Testé
+- [x] T053 Incidents typés (les 9 du cahier des charges) dans `incidents`, sévérité critique pour « endommagé » et « erreur d'identification » avec audit prioritaire, résolution motivée à la levée. L'alerte au manager arrive avec le centre d'alertes (phase 6)
+- [x] T054 Tableau atelier : par poste, nombre de pièces disponibles / en cours / bloquées
+- [x] T055 Sinistres (D8) : déclaration depuis la fiche pièce (bloque la pièce), page `/qualite/sinistres`, indemnité plafonnée à `compensation.max_factor` × prix de la pièce, décision motivée et auditée. Limite : la valeur déclarée à la réception n'est pas encore saisissable
+- [x] T056 Tests workflow (parcours, RG5, incidents, recherche manuelle, sinistres) : 49 réussis au total en ligne ; tâche `ops/deploy.sh run smoke` qui parcourt 26 pages en administrateur et a révélé deux erreurs 500 préexistantes (/production et /bi, `max(...)` avec clés texte sous PHP 8.1), corrigées
 
 ## Phase 4 — Qualité (US3)
 - [ ] T060 Verrou serveur : étape « Prêt » refusée sans contrôle conforme (service + trigger)

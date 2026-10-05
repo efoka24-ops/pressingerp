@@ -29,7 +29,7 @@
 
     <div class="card scroll">
       <table class="t" id="lines">
-        <thead><tr><th>#</th><th>Article</th><th>Qté / m²</th><th>Marque</th><th>Couleur</th><th>Matière</th><th>Taches / dommages</th><th>Photo</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Article</th><th>Qté / m²</th><th>Traitement</th><th>Marque</th><th>Couleur</th><th>Matière</th><th>Taches / dommages</th><th>Photo</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
       <div class="empty" id="lines-empty">Touchez un article ci-dessus pour l'ajouter.</div>
@@ -73,6 +73,7 @@
 
 <script>
 (function () {
+  var TREATMENTS = <?= json_encode($treatments, JSON_UNESCAPED_UNICODE) ?>;
   var form = document.getElementById('order-form');
   var tbody = document.querySelector('#lines tbody');
   var idx = 0;
@@ -120,6 +121,7 @@
       '<td class="mono muted seq"></td>' +
       '<td class="nowrap"><b>' + esc(a.name) + '</b>' + (a.fragile == 1 ? ' <span class="badge orange">fragile</span>' : '') + '<input type="hidden" name="' + n + '[article_id]" value="' + a.id + '"></td>' +
       '<td><input class="input mono" style="width:76px" type="number" name="' + n + '[qty]" value="1" min="' + (m2 ? '0.1' : '1') + '" step="' + (m2 ? '0.1' : '1') + '"></td>' +
+      '<td><select class="input" style="width:150px" name="' + n + '[treatment_id]">' + TREATMENTS.map(function (t) { return '<option value="' + t.id + '">' + esc(t.label) + '</option>'; }).join('') + '</select></td>' +
       '<td><input class="input" style="width:110px" name="' + n + '[brand]"></td>' +
       '<td><input class="input" style="width:100px" name="' + n + '[color]"></td>' +
       '<td><input class="input" style="width:110px" name="' + n + '[material]"></td>' +
@@ -164,7 +166,7 @@
       tbody.querySelectorAll('tr').forEach(function (tr) {
         lines.push({
           article: JSON.parse(tr.dataset.article || 'null'),
-          qty: tr.querySelector('input[name$="[qty]"]').value, brand: tr.querySelector('input[name$="[brand]"]').value,
+          qty: tr.querySelector('input[name$="[qty]"]').value, treatment: tr.querySelector('select[name$="[treatment_id]"]').value, brand: tr.querySelector('input[name$="[brand]"]').value,
           color: tr.querySelector('input[name$="[color]"]').value, material: tr.querySelector('input[name$="[material]"]').value, damages: tr.querySelector('.dmg').value
         });
       });
@@ -182,7 +184,7 @@
       if (!l.article) return;
       addLine(l.article);
       var tr = tbody.lastElementChild;
-      tr.querySelector('input[name$="[qty]"]').value = l.qty; tr.querySelector('input[name$="[brand]"]').value = l.brand;
+      tr.querySelector('input[name$="[qty]"]').value = l.qty; if (l.treatment) tr.querySelector('select[name$="[treatment_id]"]').value = l.treatment; tr.querySelector('input[name$="[brand]"]').value = l.brand;
       tr.querySelector('input[name$="[color]"]').value = l.color; tr.querySelector('input[name$="[material]"]').value = l.material; tr.querySelector('.dmg').value = l.damages;
     });
     var r = form.querySelector('input[name=service_level][value="' + d.level + '"]'); if (r) r.checked = true;

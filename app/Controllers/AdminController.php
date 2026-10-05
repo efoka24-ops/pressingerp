@@ -187,6 +187,43 @@ final class AdminController extends Controller
         ]);
     }
 
+    // --- Parcours par traitement -------------------------------------------------------------
+
+    public function routes(): void
+    {
+        $this->view('admin/routes', ['title' => 'Parcours de traitement', 'treatments' => Database::all('SELECT * FROM treatments ORDER BY sort, id'), 'steps' => \App\Services\WorkflowService::WORK_STEPS]);
+    }
+
+    public function saveRoute(): void
+    {
+        $allowed = \App\Services\WorkflowService::WORK_STEPS;
+        $chosen = array_values(array_intersect($allowed, array_map('strval', (array)($_POST['steps'] ?? []))));  // ordre canonique imposé
+        if (!$chosen) {
+            $this->fail('Un parcours doit comporter au moins une étape de travail.');
+        }
+        $label = $this->required(['label' => 'Libellé'])['label'];
+        $reason = $this->required(['reason' => 'Motif'])['reason'];
+        $csv = implode(',', $chosen);
+        $id = $this->int('id');
+        if ($id) {
+            $t = Database::one('SELECT * FROM treatments WHERE id = ?', [$id]) ?? $this->fail('Parcours introuvable.');
+            $new = ['label' => mb_substr($label, 0, 80), 'steps' => $csv, 'active' => $this->int('active') ? 1 : 0];
+            if ($new['active'] === 0 && (int)Database::value('SELECT COUNT(*) FROM treatments WHERE active = 1 AND id <> ?', [$id]) === 0) {
+                $this->fail('Au moins un parcours doit rester actif.');
+            }
+            Database::update('treatments', $new, 'id = :id', ['id' => $id]);
+            Audit::log('treatment.update', 'treatments', $id, ['code' => $t['code']], array_intersect_key($t, $new), $new, $reason);
+        } else {
+            $code = preg_replace('/[^a-z0-9_]/', '', strtolower(str_replace([' ', '-'], '_', $label)));
+            if ($code === '' || Database::value('SELECT id FROM treatments WHERE code = ?', [$code])) {
+                $this->fail('Ce libellé produit un code déjà utilisé ou vide.');
+            }
+            $id = Database::insert('treatments', ['code' => mb_substr($code, 0, 30), 'label' => mb_substr($label, 0, 80), 'steps' => $csv, 'active' => 1, 'sort' => 50]);
+            Audit::log('treatment.create', 'treatments', $id, [], null, ['label' => $label, 'steps' => $csv], $reason);
+        }
+        $this->ok('Parcours enregistré.', '/admin/parcours');
+    }
+
     public function backups(): void
     {
         $this->view('admin/backups', ['title' => 'Sauvegardes', 'files' => Backup::list()]);

@@ -75,11 +75,11 @@ deploy_migrate() {
 }
 
 deploy_run() {  # $1 = tâche
-  local task="${1:?tâche manquante (selftest|backup)}" token; token=$(php -r 'echo bin2hex(random_bytes(16));')
+  local task="${1:?tâche manquante (selftest|backup|restore-test|smoke)}" extra="${2:-}" token; token=$(php -r 'echo bin2hex(random_bytes(16));')
   build_config "$token"
   up public/ops-run.php pressing/public/ops-run.php
   echo "--- $task"
-  curl -sS -X POST --max-time 180 "$SITE_HTTP/ops-run.php?token=$token&task=$task" || true
+  curl -sS -X POST --max-time 180 "$SITE_HTTP/ops-run.php?token=$token&task=$task" ${extra:+--data-urlencode "$extra"} || true
   del pressing/public/ops-run.php
   build_config ""
   echo "--- script supprimé, jeton invalidé"
@@ -103,7 +103,7 @@ case "${1:-}" in
   config) build_config "" ; echo "config envoyée" ;;
   push) shift; for f in "$@"; do up "$f" "pressing/$f"; echo "envoyé : $f"; done ;;
   migrate) deploy_migrate ;;
-  run) deploy_run "${2:-}" ;;
+  run) deploy_run "${2:-}" "${3:-}" ;;
   check) check ;;
   all) deploy_code; deploy_migrate; deploy_run selftest; check ;;
   *) sed -n '2,9p' "$0"; exit 1 ;;

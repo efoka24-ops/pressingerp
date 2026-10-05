@@ -65,6 +65,7 @@ final class PricingService
                 'material'   => trim((string)($l['material'] ?? '')),
                 'damages'    => trim((string)($l['damages'] ?? '')),
                 'tariff'     => $p['kind'] === 'standard' ? null : $p['list'],
+                'treatment_id' => (int)($l['treatment_id'] ?? 0) ?: null,
             ];
             if ($a['unit'] === 'm2') {
                 $qty = max(0.1, round($qty, 2));
