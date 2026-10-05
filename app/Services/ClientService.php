@@ -29,6 +29,29 @@ final class ClientService
         return $p;
     }
 
+    /**
+     * Retrouve le client par son numéro, ou le crée s'il est identifiable. Utilisé par la synchronisation hors-ligne.
+     * @return array{client:array,created:bool}
+     */
+    public static function findOrCreate(string $name, string $phone, string $type = 'particulier'): array
+    {
+        $type = $type === 'pro' ? 'pro' : 'particulier';
+        $phone = self::normalizePhone($phone);
+        if ($err = self::nameError($name, $type) ?? self::phoneError($phone)) {
+            throw new \DomainException('Client non identifiable — ' . $err);
+        }
+        $existing = Database::one('SELECT * FROM clients WHERE phone = ?', [$phone]);
+        if ($existing) {
+            return ['client' => $existing, 'created' => false];
+        }
+        $id = Database::insert('clients', [
+            'type' => $type, 'name' => mb_substr(trim($name), 0, 150), 'phone' => $phone,
+            'code' => Numbering::next('client', 'CL-%2$06d'), 'created_at' => now(),
+        ]);
+        Audit::log('client.create', 'clients', $id, ['source' => 'hors-ligne']);
+        return ['client' => Database::one('SELECT * FROM clients WHERE id = ?', [$id]), 'created' => true];
+    }
+
     /** Message d'erreur si le numéro (déjà normalisé) ne permet pas d'identifier et de joindre le client. */
     public static function phoneError(string $normalized): ?string
     {

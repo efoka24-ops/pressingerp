@@ -15,7 +15,7 @@ $f = flash();
 <meta name="csrf" content="<?= e(Csrf::token()) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="<?= e(asset('/assets/app.css')) ?>">
 </head>
 <body>
 <div class="app">
@@ -36,7 +36,7 @@ $f = flash();
   <main class="main">
     <header class="top">
       <form action="/recherche"><input class="input" name="q" placeholder="Téléphone, nom, n° commande, QR pièce, facture…  (F2)" value="<?= e($path === '/recherche' ? ($_GET['q'] ?? '') : '') ?>" autocomplete="off"></form>
-      <?php if (Auth::can('orders')): ?><a class="btn primary" href="/commandes/nouvelle">+ Commande <span class="mono small" style="opacity:.7">F1</span></a><?php endif ?>
+      <?php if (Auth::can('orders')): ?><a class="btn primary" href="/commandes/nouvelle">+ Commande <span class="mono small" style="opacity:.7">F1</span></a> <a class="btn" href="/hors-ligne" title="Saisir des commandes sans réseau">Hors-ligne</a><?php endif ?>
       <span class="mono small muted" style="margin-left:auto"><?= e(day_name()) ?> <?= date('d/m/Y · H:i') ?></span>
     </header>
     <div class="content">
@@ -45,7 +45,7 @@ $f = flash();
     </div>
   </main>
 </div>
-<script src="/assets/app.js"></script>
+<script src="<?= e(asset('/assets/app.js')) ?>"></script>
 </body>
 </html>
 <?php unset($_SESSION['_old']); ?>

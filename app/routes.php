@@ -11,6 +11,7 @@ use App\Controllers\GarmentController;
 use App\Controllers\HomeController;
 use App\Controllers\LossController;
 use App\Controllers\MarketingController;
+use App\Controllers\OfflineController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductionController;
 use App\Controllers\QualityController;
@@ -126,6 +127,8 @@ $r->post('/admin/parametres', [AdminController::class, 'saveSetting'], 'admin:up
 $r->get('/admin/audit', [AdminController::class, 'audit'], 'admin');
 $r->get('/admin/sauvegardes', [AdminController::class, 'backups'], 'admin');
 $r->get('/admin/parcours', [AdminController::class, 'routes'], 'admin');
+$r->get('/admin/postes', [OfflineController::class, 'stations'], 'admin');
+$r->post('/admin/postes/{id}', [OfflineController::class, 'deactivate'], 'admin:update');
 $r->post('/admin/parcours', [AdminController::class, 'saveRoute'], 'admin:update');
 
 // Tarifs
@@ -133,5 +136,12 @@ $r->get('/tarifs', [TariffController::class, 'index'], 'pricing');
 $r->post('/tarifs/listes', [TariffController::class, 'createList'], 'pricing:create');
 $r->post('/tarifs/listes/{id}', [TariffController::class, 'toggleList'], 'pricing:update');
 $r->post('/tarifs/prix', [TariffController::class, 'setPrice'], 'pricing:update');
+
+// Réception hors-ligne
+$r->get('/hors-ligne', [OfflineController::class, 'page'], 'orders');
+$r->get('/api/hors-ligne/csrf', [OfflineController::class, 'csrf'], 'orders');
+$r->post('/api/hors-ligne/poste', [OfflineController::class, 'register'], 'orders:validate');
+$r->post('/api/hors-ligne/donnees', [OfflineController::class, 'data'], 'orders:create');
+$r->post('/api/hors-ligne/commandes', [OfflineController::class, 'sync'], 'orders:create');
 
 return $r;

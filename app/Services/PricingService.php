@@ -35,7 +35,7 @@ final class PricingService
      * Un article "à la pièce" en quantité N donne N pièces (une étiquette QR chacune) ;
      * un article "au m²" donne une seule pièce dont le prix dépend de la surface.
      */
-    public function quote(int $clientId, ServiceLevel $level, array $lines, bool $delivery = false, ?int $agencyId = null): array
+    public function quote(int $clientId, ServiceLevel $level, array $lines, bool $delivery = false, ?int $agencyId = null, ?string $asOf = null): array
     {
         $agencyId ??= Auth::agencyId();
         $ids = array_values(array_unique(array_map(fn($l) => (int)($l['article_id'] ?? 0), $lines)));
@@ -53,7 +53,7 @@ final class PricingService
         $photoLines = [];
         foreach ($lines as $index => $l) {
             $a = $articles[(int)($l['article_id'] ?? 0)] ?? throw new \DomainException('Article inconnu.');
-            $p = $this->price((int)$a['id'], $clientId, $agencyId) ?? throw new PricingMissing((int)$a['id'], (string)$a['name']);
+            $p = $this->price((int)$a['id'], $clientId, $agencyId, null, $asOf) ?? throw new PricingMissing((int)$a['id'], (string)$a['name']);
             $qty = (float)str_replace(',', '.', (string)($l['qty'] ?? 1));
             $base = [
                 'line'       => $index,
@@ -124,14 +124,15 @@ final class PricingService
      * Prix unitaire applicable à un article pour ce client et cette agence.
      * @return ?array{price:int,list:string,kind:string}
      */
-    public function price(int $articleId, int $clientId, int $agencyId, ?string $date = null): ?array
+    public function price(int $articleId, int $clientId, int $agencyId, ?string $date = null, ?string $asOf = null, bool $assumeVip = false): ?array
     {
-        $date ??= date('Y-m-d');
-        $key = "$articleId|$clientId|$agencyId|$date";
+        // $asOf (date et heure) : prix tels qu'ils étaient à cet instant (commande saisie hors-ligne)
+        $date ??= $asOf !== null ? substr($asOf, 0, 10) : date('Y-m-d');
+        $key = "$articleId|$clientId|$agencyId|$date|$asOf|" . (int)$assumeVip;
         if (array_key_exists($key, self::$cache)) {
             return self::$cache[$key];
         }
-        $isVip = $clientId > 0 && (bool)Database::value('SELECT is_vip FROM clients WHERE id = ?', [$clientId]);
+        $isVip = $assumeVip || ($clientId > 0 && (bool)Database::value('SELECT is_vip FROM clients WHERE id = ?', [$clientId]));
         $lists = Database::all(
             'SELECT * FROM price_lists WHERE active = 1 AND (valid_from IS NULL OR valid_from <= :d) AND (valid_to IS NULL OR valid_to >= :d)',
             ['d' => $date]
@@ -145,7 +146,9 @@ final class PricingService
         usort($lists, fn($a, $b) => (self::PRIORITY[$a['kind']] ?? 9) <=> (self::PRIORITY[$b['kind']] ?? 9) ?: (int)$b['id'] <=> (int)$a['id']);
 
         foreach ($lists as $l) {
-            $row = Database::one('SELECT price FROM price_items WHERE list_id = ? AND article_id = ? ORDER BY id DESC LIMIT 1', [$l['id'], $articleId]);
+            $row = $asOf === null
+                ? Database::one('SELECT price FROM price_items WHERE list_id = ? AND article_id = ? ORDER BY id DESC LIMIT 1', [$l['id'], $articleId])
+                : Database::one('SELECT price FROM price_items WHERE list_id = ? AND article_id = ? AND created_at <= ? ORDER BY id DESC LIMIT 1', [$l['id'], $articleId, $asOf]);
             if ($row && $row['price'] !== null) {
                 return self::$cache[$key] = ['price' => (int)$row['price'], 'list' => (string)$l['name'], 'kind' => (string)$l['kind']];
             }

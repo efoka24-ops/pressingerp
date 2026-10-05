@@ -165,7 +165,7 @@ final class WorkflowService
         });
     }
 
-    public static function log(int $garmentId, Step $step, string $action, ?string $note = null, ?string $machine = null): void
+    public static function log(int $garmentId, Step $step, string $action, ?string $note = null, ?string $machine = null, ?string $at = null): void
     {
         Database::insert('garment_events', [
             'garment_id' => $garmentId,
@@ -174,7 +174,7 @@ final class WorkflowService
             'note'       => $note,
             'machine'    => $machine,
             'user_id'    => Auth::id() ?: null,
-            'created_at' => now(),
+            'created_at' => $at ?? now(),
         ]);
     }
 

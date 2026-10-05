@@ -19,6 +19,7 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T014 Premier déploiement sur `pressing-erp.trugroup.cm` (HTTP ; HTTPS en attente du certificat, `APP_DEBUG=0`)
 - [ ] T015 Changer les mots de passe FTP et base exposés lors du cadrage, puis `ops/deploy.sh config` (à faire par vous)
 - [ ] T016 Avis conformité (docs/conformite.md) ; copier les sources dans `docs/sources/` (à faire par vous : les documents ne sont que dans la conversation)
+- [ ] T017 Activer HTTPS sur `pressing-erp.trugroup.cm` (à faire par vous) : indispensable au hors-ligne fiable (service worker), aux webhooks Sungku et à la sécurité des mots de passe. Pistes gratuites : certificat gratuit (AutoSSL / Let's Encrypt) dans le panneau Camoo, ou Cloudflare gratuit devant le domaine
 
 **Contrôle** : site en ligne, connexion administrateur, aucune donnée de démo, déploiement reproductible.
 
@@ -47,7 +48,7 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T045 Écran `/tarifs` (module Tarifs : Admin et Direction modifient, responsable d'agence et comptoir lisent) : prix par grille, motif obligatoire, historique, création/désactivation de grilles, audit ancienne/nouvelle valeur
 - [x] T046 Ticket de dépôt 80 mm (`/commandes/{id}/ticket`) : prix TTC, TVA incluse au taux paramétré (19,25 %), NIU, reste à payer, QR de suivi. À faire par vous : renseigner le NIU dans Administration › Paramètres (`company.niu`, vide pour l'instant)
 - [x] T047 Article sans tarif : commande refusée avec message clair et trace d'audit `pricing.missing` (le centre d'alertes qui prévient le responsable arrive en phase 6). Testé
-- [~] T048 Brouillon de commande conservé sur l'appareil (client, lignes, options) et restaurable après coupure ou erreur. PAS fait : réception réellement hors-ligne (service worker, numéros réservés par poste) — décision à prendre, car les codes pièces sont aujourd'hui attribués par le serveur
+- [x] T048 Réception hors-ligne : postes autorisés par un responsable (jeton), plages de numéros réservées par poste (aucun doublon, numéros inutilisés tracés), données locales (clients récents de l'agence, tarifs résolus VIP/contrat, paramètres), saisie, ticket et étiquettes générés dans le navigateur, photos conservées, synchronisation automatique idempotente avec contrôle des prix du serveur (écart signalé), page `/admin/postes`. Règles : pas d'encaissement hors-ligne, clients en compte exclus, client toujours identifiable. Testé : 14 tests PHP, 4 558 vérifications de parité JS/PHP, 31 contrôles dans un vrai Chrome réseau coupé. LIMITE : sans HTTPS le service worker est impossible ; la page reste accessible depuis le cache du navigateur (navigation, 24 h) mais l'actualisation F5 hors réseau échoue (constaté sur le site réel). HTTPS requis pour un hors-ligne fiable (T017)
 - [x] T049 Tests phase 2 (identification, photo, priorité tarifaire, tarif manquant, versions de prix, TVA, étiquettes, numéros) : 37 réussis au total en ligne, 0 échec. La numérotation est testée en séquence, pas en accès simultané réel
 
 ## Phase 3 — Workflow et traçabilité (US2)

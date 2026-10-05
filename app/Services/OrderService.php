@@ -14,8 +14,13 @@ use App\Domain\Step;
 final class OrderService
 {
     /** Réception : crée la commande, une pièce par vêtement, et notifie le client. */
-    public function create(array $in, array $photos = []): int
+    public function create(array $in, array $photos = [], array $opts = []): int
     {
+        // $opts (synchronisation hors-ligne) : number, tracking_token, created_at, agency_id, user_id, workstation_id, as_of, offline
+        $createdTs = isset($opts['created_at']) ? (int)strtotime((string)$opts['created_at']) : time();
+        $createdAt = date('Y-m-d H:i:s', $createdTs ?: time());
+        $agencyId = (int)($opts['agency_id'] ?? Auth::agencyId());
+        $userId = (int)($opts['user_id'] ?? Auth::id());
         $client = Database::one('SELECT * FROM clients WHERE id = ?', [(int)($in['client_id'] ?? 0)])
             ?? throw new \DomainException('Sélectionnez un client.');
         // Pas de client anonyme : nom complet et numéro valides exigés avant tout dépôt
@@ -34,7 +39,7 @@ final class OrderService
         }
 
         try {
-            $quote = (new PricingService())->quote((int)$client['id'], $level, $lines, $delivery);
+            $quote = (new PricingService())->quote((int)$client['id'], $level, $lines, $delivery, $agencyId, $opts['as_of'] ?? null);
         } catch (PricingMissing $e) {
             Audit::log('pricing.missing', 'articles', $e->articleId, ['article' => $e->articleName, 'client' => (int)$client['id']]);
             throw $e;
@@ -57,22 +62,26 @@ final class OrderService
             }
         }
 
+        if (!empty($opts['offline']) && $onAccount) {
+            throw new \DomainException('Client en compte : la réception hors-ligne est impossible (contrôle du plafond d\'encours requis).');
+        }
+
         // Photos stockées une fois par ligne saisie
         $paths = [];
         foreach ($photos as $index => $file) {
             $paths[$index] = Uploads::image($file, 'piece');
         }
 
-        $orderId = Database::transaction(function () use ($client, $level, $quote, $onAccount, $delivery, $address, $in, $paths): int {
-            $number = Numbering::next('order', 'PR-%d-%06d');
-            $token = bin2hex(random_bytes(16));
-            $promised = $level->promisedAt();
+        $orderId = Database::transaction(function () use ($client, $level, $quote, $onAccount, $delivery, $address, $in, $paths, $opts, $createdTs, $createdAt, $agencyId, $userId): int {
+            $number = $opts['number'] ?? Numbering::next('order', 'PR-%d-%06d');
+            $token = $opts['tracking_token'] ?? bin2hex(random_bytes(16));
+            $promised = $level->promisedAt($createdTs);
             $orderId = Database::insert('orders', [
                 'number'           => $number,
                 'tracking_token'   => $token,
                 'client_id'        => $client['id'],
-                'agency_id'        => Auth::agencyId(),
-                'user_id'          => Auth::id(),
+                'agency_id'        => $agencyId,
+                'user_id'          => $userId ?: null,
                 'service_level'    => $level->value,
                 'status'           => 'en_atelier',
                 'promised_at'      => $promised,
@@ -86,7 +95,10 @@ final class OrderService
                 'on_account'       => $onAccount ? 1 : 0,
                 'delivery_address' => $delivery ? $address : null,
                 'notes'            => trim((string)($in['notes'] ?? '')) ?: null,
-                'created_at'       => now(),
+                'created_at'       => $createdAt,
+                'workstation_id'   => $opts['workstation_id'] ?? null,
+                'offline_created_at' => isset($opts['workstation_id']) ? $createdAt : null,
+                'synced_at'        => isset($opts['workstation_id']) ? now() : null,
             ]);
 
             foreach ($quote['lines'] as $i => $l) {
@@ -110,12 +122,12 @@ final class OrderService
                     'step_since' => now(),
                     'updated_at' => now(),
                 ]);
-                WorkflowService::log($gid, Step::Reception, 'reception', isset($paths[$l['line']]) ? 'Photo jointe' : null);
+                WorkflowService::log($gid, Step::Reception, 'reception', isset($paths[$l['line']]) ? 'Photo jointe' : null, null, $createdAt);
             }
 
             $count = count($quote['lines']);
             Notifier::queue((int)$client['id'], "Pressing : commande {$number} reçue ({$count} pièce" . ($count > 1 ? 's' : '') . '). Prête le ' . date('d/m à H:i', strtotime($promised)) . '. Suivi : ' . tracking_url($token));
-            Audit::log('order.create', 'orders', $orderId, ['total' => $quote['total']]);
+            Audit::log('order.create', 'orders', $orderId, ['total' => $quote['total']] + (isset($opts['workstation_id']) ? ['hors_ligne' => true, 'poste' => (int)$opts['workstation_id']] : []));
             return $orderId;
         });
 

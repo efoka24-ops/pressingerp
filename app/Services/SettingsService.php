@@ -16,6 +16,7 @@ final class SettingsService
         'tax.vat_rate'            => ['Taux de TVA (%)', 'text', '19.25', 'Entreprise'],
         'surcharge.express'       => ['Majoration niveau Express (%)', 'int', 50, 'Tarification'],
         'surcharge.vip'           => ['Majoration niveau VIP (%)', 'int', 20, 'Tarification'],
+        'offline.block_size'      => ['Numéros réservés par plage (réception hors-ligne)', 'int', 40, 'Hors-ligne'],
         'cash.tolerance'          => ['Tolérance d\'écart de caisse (FCFA)', 'int', 1000, 'Caisse'],
         'photo.value_threshold'   => ['Photo obligatoire au-dessus de (FCFA par pièce)', 'int', 50000, 'Réception'],
         'reminder.days'           => ['Relances non retirés (jours, séparés par des virgules)', 'text', '2,7,15', 'Relances'],

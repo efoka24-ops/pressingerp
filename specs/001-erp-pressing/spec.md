@@ -22,7 +22,7 @@ Résultat du croisement des deux documents. Les points **[BLOQUANT]** doivent ê
 | A11 | **Facturation légale** : NIU, TVA (19,25 % au Cameroun, à confirmer), numérotation continue, mentions. Non évoqué. **[BLOQUANT facture]** | Conformité | 12 |
 | A12 | **Protection des données** : loi camerounaise de 2024 sur les données personnelles (référence à vérifier) ; consentement marketing et notifications opérationnelles distincts (RG11, RG18). Régulateur « à vérifier » (CR §5). | Conformité | 0 |
 | A13 | **Mobile Money** : intégration directe ou via une passerelle mutualisée ? La passerelle `apisungku` (pawaPay) existe déjà dans l'écosystème. | Architecture | 6 |
-| A14 | **Mode hors-ligne non exigé** mais indispensable en pratique (§28 continuité, réseau instable). Ajouté en exigence recommandée. | Architecture | 3 |
+| A14 | **Mode hors-ligne** : implémenté (T048). Numéros réservés par poste, synchronisation idempotente. Fiable seulement avec HTTPS. | Architecture | 3 |
 | A15 | **Aucune volumétrie** (agences, pièces/jour, utilisateurs, historique à conserver). Dimensionnement impossible. | Plan | 0 |
 | A16 | **Date de mise en production non fixée** (CR §4). | Planning | 0 |
 | A17 | **Photo obligatoire** : « valeur / fragile / endommagé » sont déclarés par l'opérateur ; seuil de valeur non défini. | Contrôle | 3 |

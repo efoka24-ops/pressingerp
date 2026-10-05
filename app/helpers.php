@@ -217,3 +217,10 @@ function checked(bool $v): string
 {
     return $v ? ' checked' : '';
 }
+
+/** URL d'une ressource publique avec sa date de modification : le navigateur la recharge dès qu'elle change. */
+function asset(string $path): string
+{
+    $file = BASE_PATH . '/public' . $path;
+    return $path . (is_file($file) ? '?v=' . filemtime($file) : '');
+}
