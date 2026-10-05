@@ -64,17 +64,17 @@ test('paiements : suppression et modification du montant refusées', function ()
 });
 
 test('paramètres : versionnés, motif obligatoire, historique en ajout seul', function () {
-    $before = SettingsService::get('cash.tolerance');
-    throws(fn() => SettingsService::set('cash.tolerance', '2000', ''), 'Motif obligatoire');
-    throws(fn() => SettingsService::set('cash.tolerance', 'abc', 'test'), 'numérique');
+    $before = SettingsService::get('reminder.manager_after');
+    throws(fn() => SettingsService::set('reminder.manager_after', '2000', ''), 'Motif obligatoire');
+    throws(fn() => SettingsService::set('reminder.manager_after', 'abc', 'test'), 'numérique');
     throws(fn() => SettingsService::set('inconnu.cle', '1', 'test'), 'inconnu');
-    SettingsService::set('cash.tolerance', '2500', 'Test de recette');
-    same(2500, SettingsService::get('cash.tolerance'));
-    SettingsService::set('cash.tolerance', '3000', 'Deuxième version');
-    same(3000, SettingsService::get('cash.tolerance'));
-    ok(count(SettingsService::history('cash.tolerance')) >= 2, 'historique');
+    SettingsService::set('reminder.manager_after', '2500', 'Test de recette');
+    same(2500, SettingsService::get('reminder.manager_after'));
+    SettingsService::set('reminder.manager_after', '3000', 'Deuxième version');
+    same(3000, SettingsService::get('reminder.manager_after'));
+    ok(count(SettingsService::history('reminder.manager_after')) >= 2, 'historique');
     if (Migrator::triggersInstalled()) {
-        throws(fn() => Database::run("UPDATE settings SET value = '1' WHERE key_name = 'cash.tolerance'"), 'ajout seul');
+        throws(fn() => Database::run("UPDATE settings SET value = '1' WHERE key_name = 'reminder.manager_after'"), 'ajout seul');
     }
     $a = Database::one("SELECT * FROM audit_log WHERE action = 'settings.change' ORDER BY id DESC LIMIT 1");
     same('2500', $a['old_value']);

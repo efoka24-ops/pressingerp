@@ -17,7 +17,7 @@ final class SettingsService
         'surcharge.express'       => ['Majoration niveau Express (%)', 'int', 50, 'Tarification'],
         'surcharge.vip'           => ['Majoration niveau VIP (%)', 'int', 20, 'Tarification'],
         'offline.block_size'      => ['Numéros réservés par plage (réception hors-ligne)', 'int', 40, 'Hors-ligne'],
-        'cash.tolerance'          => ['Tolérance d\'écart de caisse (FCFA)', 'int', 1000, 'Caisse'],
+        'discount.max_pct'        => ['Remise manuelle maximale d\'un responsable d\'agence (% du total)', 'int', 30, 'Caisse'],
         'photo.value_threshold'   => ['Photo obligatoire au-dessus de (FCFA par pièce)', 'int', 50000, 'Réception'],
         'reminder.days'           => ['Relances non retirés (jours, séparés par des virgules)', 'text', '2,7,15', 'Relances'],
         'reminder.manager_after'  => ['Alerte manager au-delà de (jours de non-retrait)', 'int', 15, 'Relances'],

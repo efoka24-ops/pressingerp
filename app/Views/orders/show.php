@@ -69,8 +69,9 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
       <?php if ($o['discount']): ?><div class="kv green"><span><?= e($o['discount_label']) ?></span><span class="mono">−<?= money($o['discount']) ?></span></div><?php endif ?>
       <?php if ($o['delivery_fee']): ?><div class="kv"><span>Livraison</span><span class="mono"><?= money($o['delivery_fee']) ?></span></div><?php endif ?>
       <div class="kv total"><span>Total</span><span class="mono" style="font-size:20px"><?= money($o['total']) ?> <small>FCFA</small></span></div>
-      <?php foreach ($payments as $p): ?>
-        <div class="kv small"><span><?= dt($p['created_at'], 'd/m H:i') ?> · <?= e(PaymentMethod::from($p['method'])->label()) ?><?= $p['reference'] ? ' · ' . e($p['reference']) : '' ?></span><span class="mono green">−<?= money($p['amount']) ?></span></div>
+      <?php $reversed = array_column(array_filter($payments, fn($x) => $x['kind'] === 'reversal'), 'reverses_id'); ?>
+      <?php foreach ($payments as $p): $rev = $p['kind'] === 'reversal'; ?>
+        <div class="kv small"><span><?= dt($p['created_at'], 'd/m H:i') ?> · <?= e(PaymentMethod::from($p['method'])->label()) ?><?= $p['reference'] ? ' · ' . e($p['reference']) : '' ?><?= $p['split_group'] ? ' · mixte' : '' ?><?= $rev ? ' · <b class="red">ANNULATION</b>' : '' ?> · <a href="/paiements/<?= (int)$p['id'] ?>/recu" target="_blank"><?= e($p['receipt_no'] ?? 'reçu') ?></a></span><span class="mono <?= $rev ? 'red' : 'green' ?>"><?= $p['amount'] > 0 ? '−' : '+' ?><?= money(abs((int)$p['amount'])) ?></span></div>
       <?php endforeach ?>
       <?php if ($o['on_account']): ?>
         <div class="kv"><span>Règlement</span><span>En compte (facture mensuelle)</span></div>
@@ -91,16 +92,71 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
     <?php elseif ($balance > 0 && $o['status'] === 'en_atelier'): ?>
       <form method="post" action="/commandes/<?= $o['id'] ?>/paiement" class="card pad form">
         <?= csrf_field() ?>
-        <h2>Encaisser un acompte</h2>
+        <h2>Encaisser</h2>
+        <?php foreach ([0, 1] as $n): ?>
         <div class="row">
-          <div class="field"><label>Montant</label><input class="input mono" name="amount" type="number" min="50" max="<?= $balance ?>" step="50" value="<?= $balance ?>" required></div>
-          <div class="field"><label>Mode</label><select class="input" name="method"><?php foreach ($methods as $m): ?><option value="<?= $m->value ?>"><?= e($m->label()) ?></option><?php endforeach ?></select></div>
+          <div class="field"><label><?= $n === 0 ? 'Montant' : 'Autre montant (paiement mixte)' ?></label><input class="input mono" name="lines[<?= $n ?>][amount]" type="number" min="50" max="<?= $balance ?>" step="50" <?= $n === 0 ? 'value="' . $balance . '" required' : 'placeholder="optionnel"' ?>></div>
+          <div class="field"><label>Mode</label><select class="input" name="lines[<?= $n ?>][method]"><?php foreach ($methods as $m): ?><option value="<?= $m->value ?>" <?= $n === 1 && $m->value === 'orange' ? 'selected' : '' ?>><?= e($m->label()) ?></option><?php endforeach ?></select></div>
+          <div class="field"><label>Réf.</label><input class="input mono" name="lines[<?= $n ?>][reference]" style="width:120px"></div>
         </div>
-        <div class="field"><label>Réf. transaction</label><input class="input mono" name="reference"></div>
-        <button class="btn primary block">Encaisser</button>
+        <?php endforeach ?>
+        <button class="btn primary block">Encaisser (un seul reçu)</button>
       </form>
     <?php endif ?>
 
+
+    <?php $manager = Auth::isManager(); $authFields = $manager ? '' : '<div class="row"><div class="field"><label>Responsable : identifiant</label><input class="input" name="auth_login" autocomplete="off" required></div><div class="field"><label>Mot de passe</label><input class="input" type="password" name="auth_password" autocomplete="off" required></div></div>'; ?>
+
+    <?php if ($intents || ($balance > 0 && in_array($o['status'], ['en_atelier', 'pret'], true))): ?>
+    <div class="card pad form">
+      <h2>Mobile Money</h2>
+      <?php if ($balance > 0 && in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
+      <form method="post" action="/commandes/<?= $o['id'] ?>/paiement-mobile" class="row" style="gap:8px;flex-wrap:wrap"><?= csrf_field() ?>
+        <div class="field"><label>Opérateur</label><select class="input" name="method"><option value="orange">Orange Money</option><option value="mtn">MTN MoMo</option></select></div>
+        <div class="field"><label>Téléphone du payeur</label><input class="input mono" name="phone" inputmode="tel" placeholder="6 70 12 34 56" required></div>
+        <button class="btn primary">Demander <?= money($balance) ?> FCFA</button>
+      </form>
+      <?php endif ?>
+      <?php foreach ($intents as $in): ?>
+        <div class="kv small"><span><?= dt($in['created_at'], 'd/m H:i') ?> · <?= e(PaymentMethod::from($in['method'])->label()) ?> · <?= e($in['phone']) ?> · <?= money($in['amount']) ?></span>
+          <span class="<?= $in['status'] === 'CONFIRMED' ? 'green' : ($in['status'] === 'FAILED' ? 'red' : 'orange') ?>"><?= $in['status'] === 'CONFIRMED' ? 'Confirmé' : ($in['status'] === 'FAILED' ? 'Échoué' : 'En attente') ?></span></div>
+        <?php if ($in['status'] !== 'CONFIRMED'): ?>
+        <details><summary class="small">Confirmer manuellement (relevé de l'opérateur)</summary>
+          <form method="post" action="/paiement-mobile/<?= (int)$in['id'] ?>/confirmer" class="form"><?= csrf_field() ?>
+            <div class="field"><label>Référence de la transaction chez l'opérateur</label><input class="input mono" name="operator_ref" required minlength="6"></div>
+            <?= $authFields ?>
+            <button class="btn sm">Confirmer le paiement</button>
+          </form>
+        </details>
+        <?php endif ?>
+      <?php endforeach ?>
+    </div>
+    <?php endif ?>
+
+    <?php if (in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
+    <details class="card pad">
+      <summary><b>Remise</b> <span class="small muted">(autorisation d'un responsable)</span></summary>
+      <form method="post" action="/commandes/<?= $o['id'] ?>/remise" class="form"><?= csrf_field() ?>
+        <div class="row"><div class="field"><label>Montant de la remise (FCFA)</label><input class="input mono" name="amount" type="number" min="50" step="50" required></div>
+        <div class="field"><label>Motif</label><input class="input" name="reason" required minlength="8" placeholder="ex. retard de livraison, geste commercial"></div></div>
+        <?= $authFields ?>
+        <button class="btn sm">Accorder la remise</button>
+      </form>
+    </details>
+    <?php endif ?>
+
+    <?php $cancellable = array_filter($payments, fn($x) => $x['kind'] === 'payment' && !in_array($x['id'], $reversed, true) && !$x['invoice_id']); ?>
+    <?php if ($cancellable && in_array($o['status'], ['en_atelier', 'pret'], true)): ?>
+    <details class="card pad">
+      <summary><b>Annuler un encaissement</b> <span class="small muted">(écriture inverse, autorisation d'un responsable)</span></summary>
+      <form method="post" action="" class="form" onsubmit="this.action='/paiements/' + this.payment.value + '/annuler'"><?= csrf_field() ?>
+        <div class="field"><label>Encaissement</label><select class="input" name="payment"><?php foreach ($cancellable as $cp): ?><option value="<?= (int)$cp['id'] ?>"><?= e($cp['receipt_no']) ?> · <?= e(PaymentMethod::from($cp['method'])->label()) ?> · <?= money($cp['amount']) ?> FCFA</option><?php endforeach ?></select></div>
+        <div class="field"><label>Motif</label><input class="input" name="reason" required minlength="8"></div>
+        <?= $authFields ?>
+        <button class="btn ghost-danger">Annuler cet encaissement</button>
+      </form>
+    </details>
+    <?php endif ?>
     <?php if (Auth::isManager() && in_array($o['status'], ['en_atelier', 'pret'], true) && !(int)$o['paid']): ?>
       <form method="post" action="/commandes/<?= $o['id'] ?>/annuler" class="row" data-confirm="Annuler définitivement cette commande ?">
         <?= csrf_field() ?>

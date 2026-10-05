@@ -46,6 +46,17 @@ final class CashController extends Controller
         ]);
     }
 
+    /** État de caisse imprimable d'une session (la sienne, ou celles de son agence pour un responsable). */
+    public function statement(string $id): void
+    {
+        $session = Database::one('SELECT * FROM cash_sessions WHERE id = ?', [(int)$id]) ?? throw new \App\Core\HttpException(404, 'Caisse introuvable');
+        $mine = (int)$session['user_id'] === Auth::id();
+        if (!$mine && (!Auth::can('cash', 'validate') || !Auth::canSeeAgency((int)$session['agency_id']))) {
+            throw new \App\Core\HttpException(403, 'Cet état de caisse ne vous concerne pas.');
+        }
+        $this->view('cash/statement', ['session' => $session, 'st' => (new CashService())->statement($session)], null);
+    }
+
     public function open(): void
     {
         try {

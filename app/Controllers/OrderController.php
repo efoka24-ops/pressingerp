@@ -10,6 +10,7 @@ use App\Core\HttpException;
 use App\Domain\PaymentMethod;
 use App\Domain\ServiceLevel;
 use App\Services\Audit;
+use App\Services\Authorizer;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\PricingService;
@@ -164,7 +165,8 @@ final class OrderController extends Controller
             'title'    => $o['number'],
             'o'        => $o,
             'garments' => Database::all('SELECT g.*, u.name operator FROM garments g LEFT JOIN users u ON u.id = g.assigned_to WHERE g.order_id = ? ORDER BY g.seq', [$o['id']]),
-            'payments' => Database::all('SELECT p.*, u.name user FROM payments p LEFT JOIN users u ON u.id = p.user_id WHERE p.order_id = ? ORDER BY p.created_at', [$o['id']]),
+            'payments' => Database::all('SELECT p.*, u.name user FROM payments p LEFT JOIN users u ON u.id = p.user_id WHERE p.order_id = ? ORDER BY p.id', [$o['id']]),
+            'intents'  => Database::all('SELECT * FROM payment_intents WHERE order_id = ? ORDER BY id DESC LIMIT 10', [$o['id']]),
             'methods'  => PaymentMethod::counter(),
             'printLabels' => input('etiquettes') === '1',
         ]);
@@ -202,13 +204,26 @@ final class OrderController extends Controller
     public function pay(string $id): void
     {
         $o = $this->find((int)$id);
-        $method = PaymentMethod::tryFrom($this->str('method')) ?? $this->fail('Mode de paiement invalide.');
         try {
-            (new PaymentService())->record((int)$o['client_id'], $method, $this->int('amount'), orderId: (int)$o['id'], reference: $this->str('reference') ?: null);
+            // Un encaissement peut mêler plusieurs modes (espèces + Orange Money…) : un seul reçu, tout ou rien
+            $r = (new PaymentService())->recordMixed((int)$o['client_id'], (array)($_POST['lines'] ?? []), orderId: (int)$o['id']);
         } catch (\DomainException $e) {
             $this->fail($e->getMessage());
         }
-        $this->ok('Paiement enregistré.', '/commandes/' . $o['id']);
+        $this->ok('Paiement enregistré · reçu ' . $r['receipt'] . '.', '/commandes/' . $o['id'] . '?recu=' . $r['ids'][0]);
+    }
+
+    /** Remise accordée après coup : le responsable autorise (connecté, ou identifiants saisis sur ce poste). */
+    public function discount(string $id): void
+    {
+        $o = $this->find((int)$id);
+        try {
+            $authoriser = Authorizer::fromRequest((int)$o['agency_id']);
+            (new OrderService())->applyDiscount((int)$o['id'], $this->int('amount'), $this->str('reason'), $authoriser);
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Remise accordée et tracée.', '/commandes/' . $o['id']);
     }
 
     public function pickup(string $id): void

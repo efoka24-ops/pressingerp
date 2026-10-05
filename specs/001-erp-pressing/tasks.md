@@ -67,23 +67,23 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T063 Tests qualité : contournement par appel direct du service (emballage/« Prêt » sans contrôle), reprise puis nouveau contrôle, dérogation sans droit, dérogation limitée à une pièce, retrait refusé sans contrôle, 9 critères. 71 tests réussis au total en ligne
 
 ## Phase 5 — Caisse (US4) — jalon pilote
-- [ ] T070 Tolérance d'écart paramétrable (D3) et alerte manager
-- [ ] T071 Paiement mixte (plusieurs lignes par encaissement)
-- [ ] T072 Remises et annulations avec autorisation et audit (RG14)
-- [ ] T073 Moyens de paiement Cameroun : Orange Money, MTN MoMo, carte, virement, crédit
-- [ ] T074 Adaptateur passerelle `apisungku` + webhook signé + idempotence
-- [ ] T075 Reçu et état de caisse imprimables
-- [ ] T076 Tests : écart, remise après validation, double webhook
+- [x] T070 Zéro tolérance d'écart de caisse (décision du 2026-10-05, remplace les 1 000 FCFA de D3) : tout écart, même d'un franc ou compensé entre deux modes, exige une justification détaillée (8 caractères minimum), est enregistré (`cash_sessions.variance`) et déclenche une alerte critique au responsable de l'agence qui doit en prendre acte. Testé
+- [x] T071 Paiement mixte : plusieurs modes pour un même encaissement (espèces + Orange Money…), un seul reçu, tout ou rien (point de sauvegarde SQL : un dépassement du solde n'enregistre aucune ligne). Testé
+- [x] T072 Remises et annulations (RG14) : remise après coup autorisée par un responsable (connecté, ou identifiant + mot de passe saisis sur le poste de l'agent), plafonnée à 30 % pour un responsable d'agence (paramètre `discount.max_pct`), jamais sous le montant encaissé ; annulation d'un encaissement par écriture inverse (aucun paiement n'est modifié ni supprimé), caisse du demandeur débitée, commande remise refusée ; demandeur et autorisant tracés avec ancienne/nouvelle valeur. Règlements de factures : par avoir (phase 10). Testé
+- [x] T073 Moyens de paiement du Cameroun : espèces, Orange Money, MTN MoMo, carte, virement, chèque ; crédit = commande en compte des clients pros (Wave et Moov retirés en phase 0)
+- [x] T074 Mobile Money via Sungku : demande depuis la fiche commande (numéro camerounais, montant calculé côté serveur), webhook signé idempotent, et **confirmation manuelle** par un responsable (référence de l'opérateur, autorisation tracée) tant que le site est en HTTP et que le webhook ne peut pas être livré. Testé
+- [x] T075 Reçu 80 mm (numéro RC-AAAA-NNNNNN, lignes d'un paiement mixte regroupées, avoir de caisse pour une annulation) et état de caisse A4 (encaissements, annulations, dépenses, théorique/compté/écart par mode, justification, chiffre d'affaires de la période, signatures)
+- [x] T076 Tests caisse : zéro tolérance, compensation entre modes, alerte et prise d'acte, paiement mixte tout ou rien, annulation (autorisation, double annulation, commande remise, caisse fermée), remise (plafond, sous l'encaissé), confirmation manuelle, reçus. Ont révélé et fait corriger : une variable oubliée dans la clôture (écart non enregistré), des retours arrière SQL imbriqués inopérants (classe d'exception sans antislash), une route sans `use`
 
 **Contrôle** : quickstart complet sur le site déployé ; pilote d'une agence.
 
 ## Phase 6 — Alertes et retards (US5)
-- [ ] T080 Tables `alert_rules`, `alerts` ; `AlertService`
-- [ ] T081 `bin/alerts.php` (cron 1 min) : non-prise en charge, blocage, retard (vert/orange/rouge)
-- [ ] T082 Alerte de transfert avec nombre de pièces ; escalade superviseur puis manager
-- [ ] T083 Centre d'alertes dans l'interface (interrogation 30 s)
-- [ ] T084 Admin des règles et délais
-- [ ] T085 Tests avec horloge simulée
+- [x] T080 Tables `alert_rules` (10 règles livrées) et `alerts` ; `AlertService` : une alerte par situation (pas de doublon), fermée quand la situation disparaît
+- [x] T081 Évaluation des situations : pièce non prise en charge après délai (120 min), pièce bloquée, incident critique, reprise qualité, commande en retard (rouge) ou à risque (orange), encours au-dessus du plafond, stock critique. Lancée par `bin/alerts.php` (cron chaque minute) et, faute de cron, au fil des pages (une fois par minute). Testé avec une horloge simulée
+- [x] T082 Fin de traitement : alerte au poste suivant avec le nombre de pièces disponibles (immédiate au changement d'étape) ; escalade vers le rôle supérieur si l'alerte n'est pas prise en compte à temps (superviseur → responsable), arrêtée par la prise en compte. Testé
+- [x] T083 Centre d'alertes `/alertes` (cloche avec compteur dans toutes les pages, mise à jour toutes les 30 s, visibilité par profil et par agence, prise en compte) et vue « Commandes à risque » (numéro, client, pièces, étape bloquante, durée, responsable, date promise)
+- [x] T084 Écran `/admin/alertes` : priorité, destinataire, délai, escalade, activation de chaque règle, avec motif et audit
+- [x] T085 Tests alertes avec horloge simulée (retard, risque, délai, escalade, prise en compte, blocage, incident critique, transfert, reprise, règles désactivées, stock). 97 tests réussis au total en ligne, dont un rendu des vraies pages et un contrôle de cohérence de toutes les routes
 
 ## Phase 7 — Notifications (US6)
 - [ ] T090 Adaptateurs SMS, WhatsApp, e-mail derrière l'interface de passerelle (bin/send-messages.php)

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AdminController;
+use App\Controllers\AlertController;
 use App\Controllers\AuthController;
 use App\Controllers\BIController;
 use App\Controllers\CashController;
@@ -14,6 +15,7 @@ use App\Controllers\MarketingController;
 use App\Controllers\OfflineController;
 use App\Controllers\OrderController;
 use App\Controllers\OverrideController;
+use App\Controllers\PaymentController;
 use App\Controllers\ProductionController;
 use App\Controllers\QualityController;
 use App\Controllers\StockController;
@@ -54,6 +56,14 @@ $r->get('/commandes/{id}/etiquettes', [OrderController::class, 'labels'], 'order
 $r->get('/commandes/{id}/ticket', [OrderController::class, 'ticket'], 'orders');
 $r->post('/commandes/{id}/paiement', [OrderController::class, 'pay'], 'orders');
 $r->post('/commandes/{id}/paiement-mobile', [PaymentController::class, 'initiate'], 'orders');
+$r->post('/commandes/{id}/remise', [OrderController::class, 'discount'], 'orders');
+$r->post('/paiements/{id}/annuler', [PaymentController::class, 'reverse'], 'orders');
+$r->get('/paiements/{id}/recu', [PaymentController::class, 'receipt'], 'orders');
+$r->post('/paiement-mobile/{id}/confirmer', [PaymentController::class, 'manualConfirm'], 'orders');
+$r->get('/caisse/{id}/etat', [CashController::class, 'statement'], 'cash');
+$r->get('/alertes', [AlertController::class, 'index'], 'auth');
+$r->post('/alertes/{id}/prise-en-compte', [AlertController::class, 'acknowledge'], 'auth');
+$r->get('/api/alertes/compte', [AlertController::class, 'count'], 'auth');
 $r->webhook('/payments/webhook/sungku', [PaymentController::class, 'sungkuWebhook']);
 $r->post('/commandes/{id}/retrait', [OrderController::class, 'pickup'], 'orders');
 $r->post('/commandes/{id}/annuler', [OrderController::class, 'cancel'], 'orders:validate');
@@ -130,6 +140,8 @@ $r->post('/admin/parametres', [AdminController::class, 'saveSetting'], 'admin:up
 $r->get('/admin/audit', [AdminController::class, 'audit'], 'admin');
 $r->get('/admin/sauvegardes', [AdminController::class, 'backups'], 'admin');
 $r->get('/admin/parcours', [AdminController::class, 'routes'], 'admin');
+$r->get('/admin/alertes', [AdminController::class, 'alertRules'], 'admin');
+$r->post('/admin/alertes', [AdminController::class, 'saveAlertRule'], 'admin:update');
 $r->get('/admin/postes', [OfflineController::class, 'stations'], 'admin');
 $r->post('/admin/postes/{id}', [OfflineController::class, 'deactivate'], 'admin:update');
 $r->post('/admin/parcours', [AdminController::class, 'saveRoute'], 'admin:update');

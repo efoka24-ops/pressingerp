@@ -56,6 +56,11 @@ final class WorkflowService
             Database::update('garments', ['status' => GarmentStatus::EnCours->value, 'assigned_to' => Auth::id() ?: null, 'updated_at' => now()], 'id = :id', ['id' => $id]);
             self::log($id, Step::from($g['step']), 'prise_en_charge');
         });
+        AlertService::safe(function () use ($id, $g): void {
+            AlertService::close('stale:' . $id, 'prise en charge');
+            AlertService::close('rework:' . $id, 'prise en charge');
+            AlertService::refreshTransfer(Step::from($g['step']));
+        });
     }
 
     public function complete(int $id, ?string $machine = null, ?string $rail = null): void
@@ -114,7 +119,7 @@ final class WorkflowService
         if (in_array($g['step'], [Step::Retire->value], true)) {
             throw new \DomainException('Pièce déjà remise au client.');
         }
-        return Database::transaction(function () use ($id, $g, $type, $note): int {
+        Database::transaction(function () use ($id, $g, $type, $note): int {
             $incident = Database::insert('incidents', [
                 'garment_id' => $id, 'step' => $g['step'], 'type' => $type->value, 'severity' => $type->critical() ? 'critical' : 'normal',
                 'note' => mb_substr($note, 0, 255), 'reported_by' => Auth::id() ?: null, 'created_at' => now(),
@@ -127,6 +132,16 @@ final class WorkflowService
             }
             return $incident;
         });
+        $incident = (int)Database::value('SELECT MAX(id) FROM incidents WHERE garment_id = ?', [$id]);
+        AlertService::safe(function () use ($id, $g, $type, $note, $incident): void {
+            $label = Step::from($g['step'])->label();
+            AlertService::raise('blocked', 'blocked:' . $id, "Pièce {$g['code']} bloquée à « $label » : $note", 'garment', $id);
+            if ($type->critical()) {
+                AlertService::raise('incident_critical', 'incident:' . $incident, "Incident critique sur {$g['code']} : $note", 'garment', $id);
+            }
+            AlertService::refreshTransfer(Step::from($g['step']));
+        });
+        return $incident;
     }
 
     public function unblock(int $id, string $resolution = ''): void
@@ -142,6 +157,13 @@ final class WorkflowService
             );
             Database::update('garments', ['status' => GarmentStatus::ATraiter->value, 'updated_at' => now()], 'id = :id', ['id' => $id]);
             self::log($id, Step::from($g['step']), 'incident_leve', trim($resolution) ?: null);
+        });
+        AlertService::safe(function () use ($id, $g): void {
+            AlertService::close('blocked:' . $id, 'incident levé');
+            foreach (Database::all('SELECT id FROM incidents WHERE garment_id = ?', [$id]) as $i) {
+                AlertService::close('incident:' . $i['id'], 'incident levé');
+            }
+            AlertService::refreshTransfer(Step::from($g['step']));
         });
     }
 
@@ -163,6 +185,14 @@ final class WorkflowService
                 Database::update('orders', ['rail' => mb_substr($rail, 0, 10)], 'id = :id', ['id' => $orderId]);
             }
             (new OrderService())->refreshStatus($orderId);
+        });
+        AlertService::safe(function () use ($id, $to): void {
+            AlertService::close('stale:' . $id, 'pièce passée à l\'étape suivante');
+            foreach (Step::production() as $s) {
+                if ($s !== Step::Pret) {
+                    AlertService::refreshTransfer($s);
+                }
+            }
         });
     }
 

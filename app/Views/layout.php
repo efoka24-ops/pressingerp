@@ -6,6 +6,8 @@ use App\Domain\Module;
 $u = Auth::user();
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $f = flash();
+\App\Services\AlertService::lazyTick();
+$alertCount = $u ? \App\Services\AlertService::count($u) : 0;
 ?><!doctype html>
 <html lang="fr">
 <head>
@@ -37,7 +39,8 @@ $f = flash();
     <header class="top">
       <form action="/recherche"><input class="input" name="q" placeholder="Téléphone, nom, n° commande, QR pièce, facture…  (F2)" value="<?= e($path === '/recherche' ? ($_GET['q'] ?? '') : '') ?>" autocomplete="off"></form>
       <?php if (Auth::can('orders')): ?><a class="btn primary" href="/commandes/nouvelle">+ Commande <span class="mono small" style="opacity:.7">F1</span></a> <a class="btn" href="/hors-ligne" title="Saisir des commandes sans réseau">Hors-ligne</a><?php endif ?>
-      <span class="mono small muted" style="margin-left:auto"><?= e(day_name()) ?> <?= date('d/m/Y · H:i') ?></span>
+      <a class="btn" href="/alertes" id="alert-bell" style="margin-left:auto" title="Alertes">Alertes<?php if ($alertCount): ?> <span class="count" id="alert-count"><?= $alertCount ?></span><?php endif ?></a>
+      <span class="mono small muted"><?= e(day_name()) ?> <?= date('d/m/Y · H:i') ?></span>
     </header>
     <div class="content">
       <?php if ($f): ?><div class="flash <?= e($f['type']) ?>"><?= e($f['msg']) ?></div><?php endif ?>
@@ -46,6 +49,7 @@ $f = flash();
   </main>
 </div>
 <script src="<?= e(asset('/assets/app.js')) ?>"></script>
+<script>setInterval(function () { fetch('/api/alertes/compte', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) { var b = document.getElementById('alert-bell'); if (!b) return; var c = document.getElementById('alert-count'); if (j.n > 0) { if (!c) { c = document.createElement('span'); c.className = 'count'; c.id = 'alert-count'; b.appendChild(document.createTextNode(' ')); b.appendChild(c); } c.textContent = j.n; } else if (c) { c.remove(); } }).catch(function () {}); }, 30000);</script>
 </body>
 </html>
 <?php unset($_SESSION['_old']); ?>

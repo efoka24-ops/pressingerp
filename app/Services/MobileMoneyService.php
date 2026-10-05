@@ -111,6 +111,27 @@ final class MobileMoneyService
         });
     }
 
+    /**
+     * Confirmation manuelle d'un paiement Mobile Money, quand la passerelle n'a pas pu livrer son webhook (site sans HTTPS).
+     * Le responsable a vérifié la transaction sur le relevé de l'opérateur ; sa référence et son autorisation sont tracées.
+     */
+    public function confirmManually(int $intentId, string $operatorRef, array $authoriser): int
+    {
+        if (mb_strlen(trim($operatorRef)) < 6) {
+            throw new \DomainException('Saisissez la référence de la transaction relevée chez l\'opérateur (6 caractères minimum).');
+        }
+        return Database::transaction(function () use ($intentId, $operatorRef, $authoriser): int {
+            $i = Database::one('SELECT * FROM payment_intents WHERE id = ? FOR UPDATE', [$intentId]) ?? throw new \DomainException('Demande de paiement introuvable.');
+            if ($i['status'] === 'CONFIRMED') {
+                throw new \DomainException('Ce paiement est déjà confirmé.');
+            }
+            $paymentId = (new PaymentService())->record((int)$i['client_id'], PaymentMethod::from($i['method']), (int)$i['amount'], orderId: (int)$i['order_id'], reference: 'MANUEL ' . trim($operatorRef), viaGateway: true);
+            Database::update('payment_intents', ['status' => 'CONFIRMED', 'provider_status' => 'MANUEL', 'payment_id' => $paymentId, 'updated_at' => now()], 'id = :id', ['id' => $intentId]);
+            Audit::log('momo.manual_confirm', 'payment_intents', $intentId, ['reference' => trim($operatorRef), 'authorised_by' => (int)$authoriser['id'], 'requested_by' => Auth::id()], ['status' => $i['status']], ['status' => 'CONFIRMED'], 'Confirmation manuelle sur relevé opérateur');
+            return $paymentId;
+        });
+    }
+
     /** Numéro camerounais : 6XXXXXXXX (9 chiffres) devient 2376XXXXXXXX. */
     public static function normalizePhone(string $phone): string
     {

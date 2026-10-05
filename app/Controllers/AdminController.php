@@ -224,6 +224,32 @@ final class AdminController extends Controller
         $this->ok('Parcours enregistré.', '/admin/parcours');
     }
 
+    // --- Règles d'alerte -----------------------------------------------------------------------
+
+    public function alertRules(): void
+    {
+        $this->view('admin/alert_rules', ['title' => 'Règles d\'alerte', 'rules' => Database::all('SELECT * FROM alert_rules ORDER BY event')]);
+    }
+
+    public function saveAlertRule(): void
+    {
+        $r = Database::one('SELECT * FROM alert_rules WHERE event = ?', [$this->str('event')]) ?? $this->fail('Règle inconnue.');
+        $reason = $this->required(['reason' => 'Motif'])['reason'];
+        $role = Role::tryFrom($this->str('target_role')) ?? $this->fail('Destinataire invalide.');
+        $esc = $this->str('escalate_role') !== '' ? (Role::tryFrom($this->str('escalate_role')) ?? $this->fail('Rôle d\'escalade invalide.')) : null;
+        $after = $esc ? max(1, $this->int('escalate_after_minutes', 60)) : null;
+        $new = [
+            'priority' => in_array($this->str('priority'), ['normal', 'high', 'critical'], true) ? $this->str('priority') : 'normal',
+            'target_role' => $role->value, 'delay_minutes' => max(0, $this->int('delay_minutes')),
+            'escalate_role' => $esc?->value, 'escalate_after_minutes' => $after, 'active' => $this->int('active') ? 1 : 0,
+        ];
+        $old = array_intersect_key($r, $new);
+        Database::update('alert_rules', $new, 'event = :e', ['e' => $r['event']]);
+        \App\Services\AlertService::resetCache();
+        Audit::log('alert_rule.update', 'alert_rules', null, ['event' => $r['event']], $old, $new, $reason);
+        $this->ok('Règle enregistrée.', '/admin/alertes');
+    }
+
     public function backups(): void
     {
         $this->view('admin/backups', ['title' => 'Sauvegardes', 'files' => Backup::list()]);

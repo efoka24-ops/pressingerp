@@ -185,6 +185,46 @@ final class OrderService
         });
     }
 
+    /**
+     * Remise accordée après la création de la commande. Exige l'autorisation d'un responsable, un motif, et ne peut
+     * ramener le total sous ce qui est déjà encaissé. Le responsable d'agence est plafonné ; direction et administrateur non.
+     */
+    public function applyDiscount(int $orderId, int $amount, string $reason, array $authoriser): void
+    {
+        if (mb_strlen(trim($reason)) < 8) {
+            throw new \DomainException('Motif détaillé obligatoire (8 caractères minimum).');
+        }
+        if ($amount <= 0) {
+            throw new \DomainException('Montant de remise invalide.');
+        }
+        Database::transaction(function () use ($orderId, $amount, $reason, $authoriser): void {
+            $o = Database::one('SELECT * FROM orders WHERE id = ?' . Auth::scopeSql() . ' FOR UPDATE', [$orderId]) ?? throw new \DomainException('Commande introuvable.');
+            if (!in_array($o['status'], ['en_atelier', 'pret'], true)) {
+                throw new \DomainException('Cette commande n\'accepte plus de remise.');
+            }
+            $total = (int)$o['total'];
+            if ($authoriser['role'] === 'manager') {
+                $max = (int)SettingsService::get('discount.max_pct');
+                if ($amount > intdiv($total * $max, 100)) {
+                    throw new \DomainException("Remise supérieure au plafond d'un responsable d'agence ($max % = " . money(intdiv($total * $max, 100)) . ' FCFA) : la direction doit l\'accorder.');
+                }
+            }
+            $new = $total - $amount;
+            if ($new < (int)$o['paid']) {
+                throw new \DomainException('Cette remise ramènerait le total sous les sommes déjà encaissées : annulez d\'abord un paiement.');
+            }
+            Database::update('orders', [
+                'discount' => (int)$o['discount'] + $amount, 'total' => $new,
+                'discount_label' => mb_substr(trim(($o['discount_label'] ? $o['discount_label'] . ' + ' : '') . 'remise accordée'), 0, 100),
+            ], 'id = :id', ['id' => $orderId]);
+            Database::insert('order_adjustments', [
+                'order_id' => $orderId, 'kind' => 'remise', 'amount' => $amount, 'old_total' => $total, 'new_total' => $new,
+                'reason' => mb_substr(trim($reason), 0, 255), 'requested_by' => Auth::id() ?: null, 'authorised_by' => (int)$authoriser['id'], 'created_at' => now(),
+            ]);
+            Audit::log('order.discount', 'orders', $orderId, ['number' => $o['number'], 'authorised_by' => (int)$authoriser['id'], 'requested_by' => Auth::id()], ['total' => $total], ['total' => $new], $reason);
+        });
+    }
+
     public function cancel(int $orderId, string $reason): void
     {
         if (!Auth::isManager()) {

@@ -33,6 +33,12 @@ final class Router
         return $this;
     }
 
+    /** @return list<array{method:string,regex:string,handler:array,perm:?string,csrf:bool}> routes déclarées (contrôle de cohérence en recette) */
+    public function routes(): array
+    {
+        return $this->routes;
+    }
+
     public function dispatch(string $method, string $uri): void
     {
         $method = $method === 'HEAD' ? 'GET' : $method;

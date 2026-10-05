@@ -153,7 +153,7 @@ Questions du §7 initial tranchées par défaut ; chacune reste révisable par l
 |---|----------|----------|
 | D1 | Volumétrie | Pilote : 1 agence, ~300 pièces/jour, ~30 utilisateurs. Dimensionné pour 5 agences et 1 500 pièces/jour au total. |
 | D2 | Calendrier | Démarrage 2026-10-12. Pilote (phases 0–6) : 14 semaines, mise en service pilote vers fin janvier 2027. Mise en production complète (phases 7–16) : fin mai 2027. |
-| D3 | CA théorique (A5) | Somme des montants attendus au comptoir pour les commandes soldées du jour + acomptes ; ventes à crédit exclues et affichées à part. Tout écart non nul doit être justifié ; alerte manager si l'écart absolu dépasse 1 000 FCFA (paramétrable). |
+| D3 | CA théorique (A5) | Somme des montants attendus au comptoir pour les commandes soldées du jour + acomptes ; ventes à crédit exclues et affichées à part. **Aucune tolérance (décision du 2026-10-05)** : tout écart de caisse, même d'un franc, doit être justifié et alerte le responsable. |
 | D4 | Priorité tarifaire (A7) | Contrat entreprise > tarif agence > VIP > promotion active > standard. Express = majoration de niveau de service, pas une grille. |
 | D5 | Fiscalité (A11) | TVA 19,25 % paramétrable, NIU de l'entreprise et du client pro sur les factures, numérotation continue par agence et par année, prix comptoir TTC. À faire confirmer par le comptable avant la phase 12. |
 | D6 | Fournisseurs | Interfaces remplaçables. Défaut : SMS via agrégateur local choisi à l'intégration, WhatsApp Business Cloud API, SMTP. Impression : thermique ESC/POS 80 mm pour les tickets, étiquettes 50x30 mm en ZPL. |

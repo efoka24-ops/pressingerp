@@ -67,6 +67,12 @@ final class QualityService
             }
         });
 
+        if ($result === 'reprise') {
+            AlertService::safe(function () use ($garmentId, $g, $reason, $backTo): void {
+                AlertService::raise('rework', 'rework:' . $garmentId, "Reprise qualité : {$g['code']} revient à « {$backTo->label()} » ($reason)", 'garment', $garmentId);
+            });
+        }
+
         return $result;
     }
 

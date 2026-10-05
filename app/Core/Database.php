@@ -9,6 +9,7 @@ use PDOStatement;
 final class Database
 {
     private static ?PDO $pdo = null;
+    private static int $savepoints = 0;
 
     public static function pdo(): PDO
     {
@@ -76,7 +77,22 @@ final class Database
     {
         $pdo = self::pdo();
         if ($pdo->inTransaction()) {
-            return $fn();
+            // Imbriquée : un point de sauvegarde annule seulement ce bloc si une exception le traverse (opération « tout ou rien »)
+            $sp = 'sp_' . (++self::$savepoints);
+            $pdo->exec("SAVEPOINT $sp");
+            try {
+                $result = $fn();
+                $pdo->exec("RELEASE SAVEPOINT $sp");
+                return $result;
+            } catch (\Throwable $e) {
+                try {
+                    $pdo->exec("ROLLBACK TO SAVEPOINT $sp");
+                } catch (\Throwable $rollback) {
+                    // Ne jamais masquer un retour arrière impossible : l'état serait incohérent
+                    throw new \RuntimeException('Annulation du bloc impossible (' . $rollback->getMessage() . ') après : ' . $e->getMessage(), 0, $e);
+                }
+                throw $e;
+            }
         }
         $pdo->beginTransaction();
         try {
