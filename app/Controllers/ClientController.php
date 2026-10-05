@@ -150,14 +150,14 @@ final class ClientController extends Controller
     {
         $req = $this->required(['name' => 'Nom', 'phone' => 'Téléphone']);
         $phone = ClientService::normalizePhone($req['phone']);
-        if (strlen(preg_replace('/\D/', '', $phone) ?? '') < 8) {
-            $this->fail('Numéro de téléphone invalide.');
+        $type = $this->str('type') === 'pro' ? 'pro' : 'particulier';
+        if ($err = ClientService::nameError($req['name'], $type) ?? ClientService::phoneError($phone)) {
+            $this->fail($err);
         }
         $email = $this->str('email');
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->fail('Adresse e-mail invalide.');
         }
-        $type = $this->str('type') === 'pro' ? 'pro' : 'particulier';
         $channel = in_array($this->str('preferred_channel'), ['sms', 'whatsapp', 'email'], true) ? $this->str('preferred_channel') : 'sms';
         return [
             'type'               => $type,

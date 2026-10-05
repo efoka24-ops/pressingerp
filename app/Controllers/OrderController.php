@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\HttpException;
 use App\Domain\PaymentMethod;
 use App\Domain\ServiceLevel;
+use App\Services\Audit;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\PricingService;
@@ -134,6 +135,8 @@ final class OrderController extends Controller
                 'delivery_fee'   => $q['delivery_fee'] ? money($q['delivery_fee']) : '',
                 'total'          => money($q['total']),
                 'promised'       => fdate($level->promisedAt()),
+                'photo_lines'    => (object)$q['photo_lines'],
+                'tariffs'        => $q['tariffs'],
             ]);
         } catch (\Throwable $e) {
             $this->json(['ok' => false, 'error' => $e->getMessage()], 422);
@@ -153,12 +156,32 @@ final class OrderController extends Controller
         ]);
     }
 
+    /**
+     * Étiquettes QR. La première impression est libre ; une réimpression exige un motif (journalisé).
+     * ?manuel=1 : liste des codes à écrire à la main si l'imprimante est en panne.
+     */
     public function labels(string $id): void
     {
         $o = $this->find((int)$id);
-        $this->view('orders/labels', [
+        $garments = Database::all('SELECT * FROM garments WHERE order_id = ? ORDER BY seq', [$o['id']]);
+        $reason = $this->str('motif');
+        $manual = input('manuel') === '1';
+        if (!$manual && $reason === '' && \App\Services\LabelService::needsReason((int)$o['id'])) {
+            $this->view('orders/labels_reason', ['title' => 'Réimprimer les étiquettes', 'o' => $o], 'layout');
+            return;
+        }
+        \App\Services\LabelService::record((int)$o['id'], $manual, $reason);
+        $this->view($manual ? 'orders/labels_manual' : 'orders/labels', ['o' => $o, 'garments' => $garments], null);
+    }
+
+    /** Ticket de dépôt (80 mm) : prix TTC, TVA incluse, NIU, reste à payer. */
+    public function ticket(string $id): void
+    {
+        $o = $this->find((int)$id);
+        $this->view('orders/ticket', [
             'o'        => $o,
             'garments' => Database::all('SELECT * FROM garments WHERE order_id = ? ORDER BY seq', [$o['id']]),
+            'payments' => Database::all('SELECT method, amount, created_at FROM payments WHERE order_id = ? ORDER BY id', [$o['id']]),
         ], null);
     }
 

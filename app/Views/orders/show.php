@@ -17,7 +17,9 @@ $balance = $o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
   <span class="badge <?= $r === 'red' ? 'red' : $s->tone() ?>"><?= $r === 'red' ? 'En retard' : e($s->label()) ?></span>
   <span class="small muted"><?= e($o['agency']) ?> · reçue <?= dt($o['created_at']) ?> par <?= e($o['user'] ?? '—') ?></span>
   <div class="actions">
+    <a class="btn" href="/commandes/<?= $o['id'] ?>/ticket" target="_blank">Ticket de dépôt</a>
     <a class="btn" href="/commandes/<?= $o['id'] ?>/etiquettes" target="_blank" id="print-labels">Imprimer les étiquettes</a>
+    <a class="btn sm" href="/commandes/<?= $o['id'] ?>/etiquettes?manuel=1" target="_blank" title="Imprimante en panne : liste des codes à écrire à la main">Étiquetage manuel</a>
     <a class="btn" href="<?= e(tracking_url($o['tracking_token'])) ?>" target="_blank" rel="noopener">Page de suivi client</a>
   </div>
 </div>

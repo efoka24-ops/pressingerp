@@ -18,7 +18,7 @@ Résultat du croisement des deux documents. Les points **[BLOQUANT]** doivent ê
 | A7 | **Priorité entre tarifs non définie** (VIP vs express vs promo vs agence vs contrat entreprise). **[BLOQUANT réception]** | Tarification | 3 |
 | A8 | **Seuils de segmentation absents** (actif, régulier, occasionnel, inactif, perdu, fort panier, VIP). | CRM | 13 |
 | A9 | **Crédit B2C ?** RG16 ne parle que du plafond des pros ; « Paiement à crédit » est listé pour tous. Segment « Débiteur » existe pour les particuliers. | Paiement | 6, 12 |
-| A10 | **Client anonyme (SE1)** incompatible avec crédit, livraison, relances non-retrait, fidélité. À interdire pour ces cas. | Règles | 3 |
+| A10 | **Client anonyme (SE1)** incompatible avec crédit, livraison, relances non-retrait, fidélité. **Résolu : anonyme interdit (D10).** | Règles | 2 |
 | A11 | **Facturation légale** : NIU, TVA (19,25 % au Cameroun, à confirmer), numérotation continue, mentions. Non évoqué. **[BLOQUANT facture]** | Conformité | 12 |
 | A12 | **Protection des données** : loi camerounaise de 2024 sur les données personnelles (référence à vérifier) ; consentement marketing et notifications opérationnelles distincts (RG11, RG18). Régulateur « à vérifier » (CR §5). | Conformité | 0 |
 | A13 | **Mobile Money** : intégration directe ou via une passerelle mutualisée ? La passerelle `apisungku` (pawaPay) existe déjà dans l'écosystème. | Architecture | 6 |
@@ -87,7 +87,7 @@ RBAC, audit, multi-agences, documents PDF, recherche globale, administration des
 
 ## 4. Exigences fonctionnelles
 
-**Clients** — FR-001 fiche client unique avec numéro ; FR-002 historique, CA cumulé, panier moyen, fréquence, dernière visite ; FR-003 segmentation automatique (9 segments + « à vérifier ») ; FR-004 préférences de consentement par canal et par finalité (opérationnel / marketing) ; FR-005 client anonyme limité (A10).
+**Clients** — FR-001 fiche client unique avec numéro ; FR-002 historique, CA cumulé, panier moyen, fréquence, dernière visite ; FR-003 segmentation automatique (9 segments + « à vérifier ») ; FR-004 préférences de consentement par canal et par finalité (opérationnel / marketing) ; FR-005 client toujours identifiable : nom complet et numéro valide unique, vérifiés à la création de la fiche et à chaque commande (D10).
 
 **Commandes & vêtements** — FR-010 numéro `PR-AAAA-NNNNNN` unique par année, sans trou toléré hors annulation tracée ; FR-011 identifiant vêtement par suffixe ; FR-012 attributs vêtement (type, catégorie, marque, couleur, matière, quantité, dommages, traitement, remarques, service, prix, dates) ; FR-013 photo obligatoire selon règle paramétrable (valeur, fragile, endommagé) ; FR-014 au moins un vêtement par commande (RG1) ; FR-015 QR/code-barres imprimable.
 
@@ -140,7 +140,7 @@ RBAC, audit, multi-agences, documents PDF, recherche globale, administration des
 3. **Priorité tarifaire** : contrat entreprise > tarif agence > VIP > promotion active > standard ; express est un *niveau de service* qui s'ajoute (majoration), pas une grille.
 4. **Seuils initiaux** : nouveau ≤ 30 j ; actif = commande < 30 j ; inactif 30–60 j ; perdu > 180 j ; régulier ≥ 4 commandes/6 mois ; VIP seuil CA annuel paramétrable.
 5. **Crédit** réservé aux comptes professionnels ; les particuliers paient avant retrait (acompte possible).
-6. **Client anonyme** : interdit pour crédit, livraison, fidélité, relances.
+6. **Client anonyme** : interdit (décision D10).
 7. **Réseau** : réception en PWA avec file hors-ligne et plages d'identifiants réservées par poste.
 8. **Stack** (voir `plan.md`) : PostgreSQL, TypeScript, PWA ; arbitrable.
 9. **Hors périmètre v1** : application client, comptabilité générale, paie, intégration fiscale en ligne.
@@ -160,6 +160,8 @@ Questions du §7 initial tranchées par défaut ; chacune reste révisable par l
 | D7 | Mobile Money (A13) | Via la passerelle mutualisée `apisungku`. |
 | D8 | Perte ou dommage (A21) | Indemnisation plafonnée à 10 fois le prix du service, sauf valeur déclarée à la réception ; validée par le manager, tracée. Plafond paramétrable. |
 | D9 | Données personnelles (A12) | Conservation 5 ans après la dernière activité, 10 ans pour les pièces comptables. Consentement marketing explicite et révocable. Revue juridique en phase 0. |
+
+| D10 | Client anonyme (A10, SE1) | **Interdit** (décision du 2026-10-05) : chaque client est identifiable par son nom complet et un numéro de téléphone valide et unique. Un client qui refuse de les donner ne peut pas déposer de vêtements. Remplace l'hypothèse 6 et l'exception SE1. |
 
 Hors périmètre v1 : application client, comptabilité générale, paie.
 

@@ -14,6 +14,7 @@ use App\Controllers\OrderController;
 use App\Controllers\ProductionController;
 use App\Controllers\QualityController;
 use App\Controllers\StockController;
+use App\Controllers\TariffController;
 use App\Controllers\TraceController;
 use App\Controllers\TrackingController;
 use App\Core\Router;
@@ -47,6 +48,7 @@ $r->post('/commandes', [OrderController::class, 'store'], 'orders');
 $r->post('/api/devis', [OrderController::class, 'quote'], 'orders');
 $r->get('/commandes/{id}', [OrderController::class, 'show'], 'orders');
 $r->get('/commandes/{id}/etiquettes', [OrderController::class, 'labels'], 'orders');
+$r->get('/commandes/{id}/ticket', [OrderController::class, 'ticket'], 'orders');
 $r->post('/commandes/{id}/paiement', [OrderController::class, 'pay'], 'orders');
 $r->post('/commandes/{id}/paiement-mobile', [PaymentController::class, 'initiate'], 'orders');
 $r->webhook('/payments/webhook/sungku', [PaymentController::class, 'sungkuWebhook']);
@@ -119,5 +121,11 @@ $r->get('/admin/parametres', [AdminController::class, 'settings'], 'admin');
 $r->post('/admin/parametres', [AdminController::class, 'saveSetting'], 'admin:update');
 $r->get('/admin/audit', [AdminController::class, 'audit'], 'admin');
 $r->get('/admin/sauvegardes', [AdminController::class, 'backups'], 'admin');
+
+// Tarifs
+$r->get('/tarifs', [TariffController::class, 'index'], 'pricing');
+$r->post('/tarifs/listes', [TariffController::class, 'createList'], 'pricing:create');
+$r->post('/tarifs/listes/{id}', [TariffController::class, 'toggleList'], 'pricing:update');
+$r->post('/tarifs/prix', [TariffController::class, 'setPrice'], 'pricing:update');
 
 return $r;

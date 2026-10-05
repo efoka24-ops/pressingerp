@@ -22,8 +22,8 @@ enum ServiceLevel: string
     {
         return match ($this) {
             self::Standard => 0,
-            self::Express  => 50,
-            self::Vip      => 20,
+            self::Express  => (int)\App\Services\SettingsService::get('surcharge.express'),
+            self::Vip      => (int)\App\Services\SettingsService::get('surcharge.vip'),
         };
     }
 

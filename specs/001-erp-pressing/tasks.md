@@ -39,16 +39,16 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 **Contrôle** : fait, sauf le cron et la copie externe des sauvegardes (T029) qui dépendent de l'hébergeur et de vous.
 
 ## Phase 2 — Réception conforme (US1)
-- [ ] T040 Client anonyme : autorisé au comptoir, interdit pour crédit, livraison, fidélité, relances (spec A10)
-- [ ] T041 Règle photo obligatoire paramétrable : fragile, endommagé, valeur > seuil
-- [ ] T042 QR en local : embarquer la bibliothèque dans `public/assets/vendor/`, supprimer le CDN (app/Views/orders/labels.php)
-- [ ] T043 ID provisoire `TMP-` si impression impossible (SE3) + écran de régularisation
-- [ ] T044 Grilles tarifaires en base, versionnées, priorité D4 ; remplacer les majorations codées (app/Services/PricingService.php)
-- [ ] T045 Écran admin des tarifs + audit des changements
-- [ ] T046 Prix TTC, TVA 19,25 % paramétrable, NIU sur le ticket (D5)
-- [ ] T047 Tarif absent : message et escalade au responsable (SE4)
-- [ ] T048 Service worker + file locale pour la réception hors-ligne ; plages de numéros réservées par poste
-- [ ] T049 Tests : unicité des codes en concurrence, SE1–SE4, RG1–RG4
+- [x] T040 Pas de client anonyme (décision D10) : nom et prénom + numéro valide (9 chiffres commençant par 6 ou 2, ou numéro étranger avec indicatif) exigés à la création de la fiche ET refusés à la commande si la fiche est incomplète ; un numéro = un client (clé unique). Testé
+- [x] T041 Photo obligatoire : article fragile, pièce endommagée ou de valeur (seuil `photo.value_threshold`, 50 000 FCFA par défaut, paramétrable) ; contrôlée côté serveur et côté écran d'après le devis réel ; photos réduites avant envoi (limite 2 Mo de l'hébergeur). Testé
+- [x] T042 QR servi localement (`public/assets/vendor/qrcode.min.js`), plus aucun CDN dans les étiquettes ni le ticket. Testé
+- [x] T043 Étiquettes : journal `label_prints`, première impression libre, réimpression avec motif obligatoire et audit, mode « étiquetage manuel » (liste des codes à écrire) si l'imprimante est en panne. Les codes `TMP-` ne sont pas nécessaires : les codes sont générés par le serveur avant l'impression. Testé
+- [x] T044 Grilles `price_lists`/`price_items` versionnées, priorité D4 (contrat > agence > VIP > promotion > standard), prix retirable, promotions à période, majorations Express/VIP devenues des paramètres. Repli sur l'ancien prix du catalogue tant qu'un article n'a pas de prix standard. Testé
+- [x] T045 Écran `/tarifs` (module Tarifs : Admin et Direction modifient, responsable d'agence et comptoir lisent) : prix par grille, motif obligatoire, historique, création/désactivation de grilles, audit ancienne/nouvelle valeur
+- [x] T046 Ticket de dépôt 80 mm (`/commandes/{id}/ticket`) : prix TTC, TVA incluse au taux paramétré (19,25 %), NIU, reste à payer, QR de suivi. À faire par vous : renseigner le NIU dans Administration › Paramètres (`company.niu`, vide pour l'instant)
+- [x] T047 Article sans tarif : commande refusée avec message clair et trace d'audit `pricing.missing` (le centre d'alertes qui prévient le responsable arrive en phase 6). Testé
+- [~] T048 Brouillon de commande conservé sur l'appareil (client, lignes, options) et restaurable après coupure ou erreur. PAS fait : réception réellement hors-ligne (service worker, numéros réservés par poste) — décision à prendre, car les codes pièces sont aujourd'hui attribués par le serveur
+- [x] T049 Tests phase 2 (identification, photo, priorité tarifaire, tarif manquant, versions de prix, TVA, étiquettes, numéros) : 37 réussis au total en ligne, 0 échec. La numérotation est testée en séquence, pas en accès simultané réel
 
 ## Phase 3 — Workflow et traçabilité (US2)
 - [ ] T050 Table `treatment_routes` : parcours par traitement (remplace « étape non nécessaire » manuelle)

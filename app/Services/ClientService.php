@@ -29,6 +29,39 @@ final class ClientService
         return $p;
     }
 
+    /** Message d'erreur si le numéro (déjà normalisé) ne permet pas d'identifier et de joindre le client. */
+    public static function phoneError(string $normalized): ?string
+    {
+        if (preg_match('/^\+237[62]\d{8}$/', $normalized)) {
+            return null; // mobile (6…) ou fixe (2…) camerounais, 9 chiffres
+        }
+        if (preg_match('/^\+(?!237)[1-9]\d{7,14}$/', $normalized)) {
+            return null; // numéro étranger saisi avec son indicatif
+        }
+        return 'Numéro invalide : 9 chiffres commençant par 6 (mobile) ou 2 (fixe), par exemple 6 70 12 34 56. Un numéro étranger s\'écrit avec son indicatif (+33…).';
+    }
+
+    /** Un particulier doit avoir un prénom et un nom ; une entreprise, une raison sociale. */
+    public static function nameError(string $name, string $type): ?string
+    {
+        $name = trim((string)preg_replace('/\s+/u', ' ', $name));
+        if ($type === 'pro') {
+            return mb_strlen($name) >= 3 ? null : 'Raison sociale trop courte.';
+        }
+        $parts = explode(' ', $name);
+        if (count($parts) < 2 || min(array_map('mb_strlen', $parts)) < 2) {
+            return 'Nom et prénom obligatoires : le client doit pouvoir être identifié.';
+        }
+        return null;
+    }
+
+    /** Un client sans nom complet ou sans numéro valide ne peut pas déposer de vêtements. */
+    public static function identifiableError(array $client): ?string
+    {
+        return self::nameError((string)($client['name'] ?? ''), (string)($client['type'] ?? 'particulier'))
+            ?? self::phoneError((string)($client['phone'] ?? ''));
+    }
+
     public static function formatPhone(string $p): string
     {
         if (preg_match('/^\+237(\d)(\d{2})(\d{2})(\d{2})(\d{2})$/', $p, $m)) {

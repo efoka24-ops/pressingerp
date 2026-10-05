@@ -37,3 +37,6 @@
     var t; return function () { var a = arguments, s = this; clearTimeout(t); t = setTimeout(function () { fn.apply(s, a); }, ms); };
   };
 })();
+
+// Commande enregistrée : le brouillon local n'a plus lieu d'être
+try { if (/[?&]etiquettes=1/.test(location.search)) localStorage.removeItem('order-draft'); } catch (e) {}

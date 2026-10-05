@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Étiquettes <?= e($o['number']) ?></title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/assets/vendor/qrcode.min.js"></script>
 <style>
   @page { size: 62mm 40mm; margin: 0; }
   * { box-sizing: border-box; }

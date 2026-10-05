@@ -14,6 +14,8 @@ final class SettingsService
         'company.name'            => ['Raison sociale', 'text', 'Pressing', 'Entreprise'],
         'company.niu'             => ['NIU (numéro d\'identifiant unique)', 'text', '', 'Entreprise'],
         'tax.vat_rate'            => ['Taux de TVA (%)', 'text', '19.25', 'Entreprise'],
+        'surcharge.express'       => ['Majoration niveau Express (%)', 'int', 50, 'Tarification'],
+        'surcharge.vip'           => ['Majoration niveau VIP (%)', 'int', 20, 'Tarification'],
         'cash.tolerance'          => ['Tolérance d\'écart de caisse (FCFA)', 'int', 1000, 'Caisse'],
         'photo.value_threshold'   => ['Photo obligatoire au-dessus de (FCFA par pièce)', 'int', 50000, 'Réception'],
         'reminder.days'           => ['Relances non retirés (jours, séparés par des virgules)', 'text', '2,7,15', 'Relances'],

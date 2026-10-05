@@ -18,6 +18,10 @@ final class OrderService
     {
         $client = Database::one('SELECT * FROM clients WHERE id = ?', [(int)($in['client_id'] ?? 0)])
             ?? throw new \DomainException('Sélectionnez un client.');
+        // Pas de client anonyme : nom complet et numéro valides exigés avant tout dépôt
+        if ($err = ClientService::identifiableError($client)) {
+            throw new \DomainException('Client non identifiable — ' . $err . ' Corrigez la fiche client avant de continuer.');
+        }
         $level = ServiceLevel::tryFrom((string)($in['service_level'] ?? '')) ?? ServiceLevel::Standard;
         $lines = array_filter((array)($in['lines'] ?? []), fn($l) => is_array($l) && !empty($l['article_id']));
         if (!$lines) {
@@ -29,12 +33,17 @@ final class OrderService
             throw new \DomainException('Adresse de livraison obligatoire.');
         }
 
-        $quote = (new PricingService())->quote((int)$client['id'], $level, $lines, $delivery);
+        try {
+            $quote = (new PricingService())->quote((int)$client['id'], $level, $lines, $delivery);
+        } catch (PricingMissing $e) {
+            Audit::log('pricing.missing', 'articles', $e->articleId, ['article' => $e->articleName, 'client' => (int)$client['id']]);
+            throw $e;
+        }
 
-        // Photo obligatoire pour les pièces fragiles ou endommagées
+        // Photo obligatoire pour les pièces fragiles, endommagées ou de valeur (seuil paramétrable)
         foreach ($quote['lines'] as $l) {
-            if (($l['fragile'] || $l['damages'] !== '') && empty($photos[$l['line']])) {
-                throw new \DomainException("Photo obligatoire pour « {$l['label']} » (article fragile ou déjà endommagé).");
+            if ($l['photo_reason'] !== null && empty($photos[$l['line']])) {
+                throw new \DomainException("Photo obligatoire pour « {$l['label']} » ({$l['photo_reason']}).");
             }
         }
 
