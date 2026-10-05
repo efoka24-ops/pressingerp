@@ -12,5 +12,8 @@
 <form method="post" action="/admin/agences" class="card pad form"><?= csrf_field() ?><h2>Nouvelle agence</h2>
   <div class="row"><div class="field"><label>Code</label><input class="input mono" name="code" required></div><div class="field"><label>Nom</label><input class="input" name="name" required></div>
   <div class="field"><label>Téléphone</label><input class="input" name="phone"></div><div class="field"><label>&nbsp;</label><label class="small"><input type="checkbox" name="is_workshop" value="1"> Atelier</label></div></div>
+  <div class="row"><div class="field"><label>Responsable d'agence : nom (facultatif)</label><input class="input" name="manager_name" autocomplete="off"></div>
+  <div class="field"><label>Identifiant</label><input class="input mono" name="manager_login" autocomplete="off" placeholder="resp.ville"></div></div>
+  <div class="small muted">Si renseigné, le compte du responsable est créé avec l'agence et son mot de passe s'affiche une seule fois.</div>
   <button class="btn primary">Créer</button></form>
 <?php endif ?>

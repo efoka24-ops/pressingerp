@@ -7,8 +7,12 @@ $ob = $objectives;
 <div class="head">
   <h1>Aujourd'hui</h1>
   <div class="tabs">
+    <?php if (\App\Core\Auth::scopedAgencyId()): ?>
+      <?php foreach ($agencies as $a): if ($ag === (int)$a['id']): ?><a class="on"><?= e($a['name']) ?></a><?php endif; endforeach ?>
+    <?php else: ?>
     <a href="/cockpit" class="<?= $ag === 0 ? 'on' : '' ?>">Groupe consolidé</a>
     <?php foreach ($agencies as $a): ?><a href="/cockpit?agence=<?= (int)$a['id'] ?>" class="<?= $ag === (int)$a['id'] ? 'on' : '' ?>"><?= e($a['name']) ?></a><?php endforeach ?>
+    <?php endif ?>
   </div>
   <span class="small muted" style="margin-left:auto">Comparé à la moyenne des 4 derniers <?= e(day_name()) ?>s</span>
 </div>

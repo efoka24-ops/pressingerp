@@ -128,8 +128,35 @@ final class AdminController extends Controller
             if (Database::value('SELECT id FROM agencies WHERE code = ?', [$code])) {
                 $this->fail('Ce code existe déjà.');
             }
-            $newId = Database::insert('agencies', $data);
-            Audit::log('agency.create', 'agencies', $newId, [], null, $data);
+            // Création d'un pressing et, dans la foulée, de son responsable d'agence (tout ou rien)
+            $mLogin = trim($this->str('manager_login'));
+            $mName = trim($this->str('manager_name'));
+            if (($mLogin === '') !== ($mName === '')) {
+                $this->fail('Responsable : renseignez son nom et son identifiant, ou laissez les deux vides.');
+            }
+            if ($mLogin !== '' && !preg_match('/^[a-z0-9._-]{3,40}$/', $mLogin)) {
+                $this->fail('Identifiant du responsable : 3 à 40 caractères (minuscules, chiffres, . _ -).');
+            }
+            if ($mLogin !== '' && Database::value('SELECT id FROM users WHERE login = ?', [$mLogin])) {
+                $this->fail('Cet identifiant de responsable existe déjà.');
+            }
+            $password = '';
+            $newId = Database::transaction(function () use ($data, $mLogin, $mName, &$password): int {
+                $newId = Database::insert('agencies', $data);
+                Audit::log('agency.create', 'agencies', $newId, [], null, $data);
+                if ($mLogin !== '') {
+                    $password = substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 12);
+                    $uid = Database::insert('users', [
+                        'agency_id' => $newId, 'name' => $mName, 'login' => $mLogin, 'role' => Role::Manager->value, 'active' => 1,
+                        'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                    ]);
+                    Audit::log('user.create', 'users', $uid, ['login' => $mLogin], null, ['role' => Role::Manager->value, 'agency_id' => $newId]);
+                }
+                return $newId;
+            });
+            if ($mLogin !== '') {
+                $this->ok("Agence créée avec son responsable. Identifiant : $mLogin · mot de passe : $password (affiché une seule fois).", '/admin/agences');
+            }
         } else {
             $a = Database::one('SELECT * FROM agencies WHERE id = ?', [(int)$id]) ?? $this->fail('Agence introuvable.');
             $reason = $this->str('reason');
