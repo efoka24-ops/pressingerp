@@ -202,6 +202,7 @@ function event_label(string $action): string
         'incident'        => 'Incident',
         'incident_leve'   => 'Incident levé',
         'controle_ok'     => 'Contrôle conforme',
+        'derogation'      => 'Dérogation qualité',
         'reprise'         => 'Renvoyé en reprise',
         'retrait'         => 'Retrait client',
         default           => ucfirst(str_replace('_', ' ', $action)),

@@ -181,7 +181,7 @@ async function until(fn, ms = 8000) { const t = Date.now(); while (Date.now() - 
   } catch (e) {
     console.log('ECHEC exception — ' + e.message); failures++;
   } finally {
-    await browser.close();
+    await Promise.race([browser.close(), wait(8000)]);
     server.close();
   }
   console.log(failures ? failures + ' échec(s)' : 'Tous les contrôles passent');

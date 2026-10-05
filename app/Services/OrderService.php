@@ -163,6 +163,7 @@ final class OrderService
             if ($o['status'] !== 'pret') {
                 throw new \DomainException('La commande n\'est pas encore prête.');
             }
+            QualityGate::assertOrderReady($orderId);   // RG8 : aucune pièce remise sans contrôle qualité valide
             $balance = (int)$o['on_account'] ? 0 : (int)$o['total'] - (int)$o['paid'];
             if ($balance > 0) {
                 if (!$method) {

@@ -13,6 +13,7 @@ use App\Controllers\LossController;
 use App\Controllers\MarketingController;
 use App\Controllers\OfflineController;
 use App\Controllers\OrderController;
+use App\Controllers\OverrideController;
 use App\Controllers\ProductionController;
 use App\Controllers\QualityController;
 use App\Controllers\StockController;
@@ -63,7 +64,9 @@ $r->get('/production', [ProductionController::class, 'index'], 'production');
 $r->get('/scan', [GarmentController::class, 'scan'], 'production');
 $r->post('/pieces/{id}/action', [GarmentController::class, 'action'], 'production');
 $r->post('/pieces/{id}/sinistre', [LossController::class, 'declare'], 'production');
+$r->get('/qualite/derogations', [OverrideController::class, 'index'], 'quality');
 $r->get('/qualite/sinistres', [LossController::class, 'index'], 'quality');
+$r->post('/pieces/{id}/derogation', [OverrideController::class, 'grant'], 'quality:validate');
 $r->post('/qualite/sinistres/{id}', [LossController::class, 'decide'], 'quality:validate');
 
 // 05 Qualité
@@ -134,6 +137,8 @@ $r->post('/admin/parcours', [AdminController::class, 'saveRoute'], 'admin:update
 // Tarifs
 $r->get('/tarifs', [TariffController::class, 'index'], 'pricing');
 $r->post('/tarifs/listes', [TariffController::class, 'createList'], 'pricing:create');
+$r->post('/tarifs/articles', [TariffController::class, 'createArticle'], 'pricing:create');
+$r->post('/tarifs/articles/{id}', [TariffController::class, 'updateArticle'], 'pricing:update');
 $r->post('/tarifs/listes/{id}', [TariffController::class, 'toggleList'], 'pricing:update');
 $r->post('/tarifs/prix', [TariffController::class, 'setPrice'], 'pricing:update');
 

@@ -90,11 +90,24 @@ final class OrderController extends Controller
         $this->view('orders/create', [
             'title'    => 'Nouvelle commande',
             'client'   => $client,
-            'articles' => Database::all('SELECT id, name, price, unit, fragile FROM articles WHERE active = 1 ORDER BY sort, name'),
+            'articles' => $this->articlesWithPrices((int)($client['id'] ?? 0)),
             'levels'   => ServiceLevel::cases(),
             'methods'  => PaymentMethod::counter(),
             'treatments' => Database::all('SELECT id, code, label, steps FROM treatments WHERE active = 1 ORDER BY sort, id'),
         ]);
+    }
+
+    /** Pièces actives avec leur prix applicable (grilles de tarifs) pour ce client et cette agence. */
+    private function articlesWithPrices(int $clientId): array
+    {
+        $pricing = new PricingService();
+        $out = [];
+        foreach (Database::all('SELECT id, name, price, unit, fragile FROM articles WHERE active = 1 ORDER BY sort, name') as $a) {
+            $p = $pricing->price((int)$a['id'], $clientId, Auth::agencyId());
+            $a['price'] = $p ? $p['price'] : 0;
+            $out[] = $a;
+        }
+        return $out;
     }
 
     public function store(): void

@@ -183,6 +183,72 @@ final class PricingService
         return true;
     }
 
+    /**
+     * Ajoute une pièce au catalogue avec son prix standard (le prix des autres grilles se saisit ensuite dans les Tarifs).
+     * @return int identifiant de l'article
+     */
+    public function createArticle(string $name, string $unit, bool $fragile, int $price, string $reason): int
+    {
+        $name = trim((string)preg_replace('/\s+/u', ' ', $name));
+        if (mb_strlen($name) < 2 || mb_strlen($name) > 80) {
+            throw new \DomainException('Nom de la pièce : 2 à 80 caractères.');
+        }
+        if (!in_array($unit, ['piece', 'm2'], true)) {
+            throw new \DomainException('Unité invalide (pièce ou m²).');
+        }
+        if ($price <= 0 || $price > 10_000_000) {
+            throw new \DomainException('Prix invalide : entier positif en FCFA.');
+        }
+        if (trim($reason) === '') {
+            throw new \DomainException('Motif obligatoire.');
+        }
+        if (Database::value('SELECT id FROM articles WHERE LOWER(name) = LOWER(?)', [$name])) {
+            throw new \DomainException('Cette pièce existe déjà dans le catalogue.');
+        }
+        $id = Database::transaction(function () use ($name, $unit, $fragile, $price, $reason): int {
+            $id = Database::insert('articles', [
+                'name' => $name, 'price' => $price, 'unit' => $unit, 'fragile' => $fragile ? 1 : 0,
+                'sort' => (int)Database::value('SELECT COALESCE(MAX(sort), 0) + 1 FROM articles'), 'active' => 1,
+            ]);
+            $std = (int)Database::value("SELECT id FROM price_lists WHERE kind = 'standard' LIMIT 1");
+            Database::insert('price_items', ['list_id' => $std, 'article_id' => $id, 'price' => $price, 'reason' => mb_substr($reason, 0, 255), 'created_by' => Auth::id() ?: null, 'created_at' => now()]);
+            Audit::log('article.create', 'articles', $id, ['name' => $name, 'unit' => $unit], null, ['price' => $price, 'fragile' => (int)$fragile], $reason);
+            return $id;
+        });
+        self::resetCache();
+        return $id;
+    }
+
+    /** Renomme, marque fragile ou retire une pièce du catalogue (jamais supprimée : l'historique des commandes la référence). */
+    public function updateArticle(int $id, string $name, bool $fragile, bool $active, string $reason): bool
+    {
+        $a = Database::one('SELECT * FROM articles WHERE id = ?', [$id]) ?? throw new \DomainException('Pièce introuvable.');
+        $name = trim((string)preg_replace('/\s+/u', ' ', $name));
+        if (mb_strlen($name) < 2 || mb_strlen($name) > 80) {
+            throw new \DomainException('Nom de la pièce : 2 à 80 caractères.');
+        }
+        if (trim($reason) === '') {
+            throw new \DomainException('Motif obligatoire.');
+        }
+        if (Database::value('SELECT id FROM articles WHERE LOWER(name) = LOWER(?) AND id <> ?', [$name, $id])) {
+            throw new \DomainException('Une autre pièce porte déjà ce nom.');
+        }
+        $new = ['name' => $name, 'fragile' => $fragile ? 1 : 0, 'active' => $active ? 1 : 0];
+        $old = array_intersect_key($a, $new);
+        if ($old == $new) {
+            return false;
+        }
+        if (!$active && (int)Database::value('SELECT COUNT(*) FROM articles WHERE active = 1 AND id <> ?', [$id]) === 0) {
+            throw new \DomainException('Au moins une pièce doit rester active.');
+        }
+        Database::transaction(function () use ($id, $new, $old, $reason): void {
+            Database::update('articles', $new, 'id = :id', ['id' => $id]);
+            Audit::log('article.update', 'articles', $id, [], $old, $new, $reason);
+        });
+        self::resetCache();
+        return true;
+    }
+
     /** TVA incluse dans un montant TTC. */
     public static function vatIncluded(int $total): int
     {

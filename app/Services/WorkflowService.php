@@ -147,6 +147,7 @@ final class WorkflowService
 
     public function moveTo(int $id, Step $to, GarmentStatus $status, ?string $rail = null, ?string $note = null): void
     {
+        QualityGate::assertCanEnter($id, $to);   // RG8 : pas d'emballage ni de « Prêt » sans contrôle conforme ou dérogation
         Database::transaction(function () use ($id, $to, $status, $rail, $note): void {
             $final = in_array($to, [Step::Pret, Step::Retire], true) ? GarmentStatus::Termine : $status;
             Database::update('garments', [

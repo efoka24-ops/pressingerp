@@ -2,6 +2,42 @@
 <div class="head"><span class="mono small muted">12</span><h1>Tarifs</h1>
   <span class="small muted">Priorité : contrat entreprise › agence › VIP › promotion › standard. Chaque prix modifié est versionné et audité.</span></div>
 
+<div class="card pad">
+  <div class="card-h"><h2>Pièces du catalogue</h2><span class="small muted">Ajoutez une pièce (avec son prix standard) ou retirez-la de la réception. Les commandes passées gardent leur historique.</span></div>
+  <table class="t">
+    <thead><tr><th>Pièce</th><th>Unité</th><th>Fragile</th><th>État</th><?php if ($w): ?><th>Modifier (motif obligatoire)</th><?php endif ?></tr></thead>
+    <tbody>
+    <?php foreach ($catalog as $a): ?>
+      <tr class="<?= $a['active'] ? '' : 'warn' ?>">
+        <td class="strong"><?= e($a['name']) ?></td><td><?= $a['unit'] === 'm2' ? 'm²' : 'pièce' ?></td><td><?= $a['fragile'] ? 'oui (photo obligatoire)' : 'non' ?></td><td><?= $a['active'] ? 'Active' : 'Retirée' ?></td>
+        <?php if ($w): ?><td>
+          <form method="post" action="/tarifs/articles/<?= (int)$a['id'] ?>" class="row" style="gap:6px;flex-wrap:wrap"><?= csrf_field() ?>
+            <input class="input" name="name" value="<?= e($a['name']) ?>" style="width:190px">
+            <select class="input" name="fragile"><option value="0" <?= $a['fragile'] ? '' : 'selected' ?>>Non fragile</option><option value="1" <?= $a['fragile'] ? 'selected' : '' ?>>Fragile</option></select>
+            <select class="input" name="active"><option value="1" <?= $a['active'] ? 'selected' : '' ?>>Active</option><option value="0" <?= $a['active'] ? '' : 'selected' ?>>Retirée</option></select>
+            <input class="input" name="reason" placeholder="Motif" required style="width:170px"><button class="btn sm">Enregistrer</button>
+          </form>
+        </td><?php endif ?>
+      </tr>
+    <?php endforeach ?>
+    </tbody>
+  </table>
+</div>
+<?php if ($c): ?>
+<form method="post" action="/tarifs/articles" class="card pad form"><?= csrf_field() ?>
+  <h2>Ajouter une pièce</h2>
+  <div class="row" style="flex-wrap:wrap;gap:10px">
+    <div class="field"><label>Nom de la pièce</label><input class="input" name="name" required placeholder="ex. Abaya, Kaftan, Doudoune"></div>
+    <div class="field"><label>Unité de prix</label><select class="input" name="unit"><option value="piece">À la pièce</option><option value="m2">Au m²</option></select></div>
+    <div class="field"><label>Prix standard (FCFA)</label><input class="input mono" type="number" name="price" min="50" step="50" required></div>
+    <div class="field"><label>Fragile ?</label><select class="input" name="fragile"><option value="0">Non</option><option value="1">Oui (photo obligatoire)</option></select></div>
+    <div class="field"><label>Motif</label><input class="input" name="reason" required value="Nouvelle pièce au catalogue"></div>
+  </div>
+  <button class="btn primary">Ajouter la pièce</button>
+  <div class="small muted">Les prix VIP, agence, promotion ou contrat de cette pièce se saisissent ensuite dans les grilles ci-dessous.</div>
+</form>
+<?php endif ?>
+
 <?php foreach ($lists as $l): ?>
 <div class="card scroll">
   <div class="card-h">

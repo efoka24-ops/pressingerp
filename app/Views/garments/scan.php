@@ -56,6 +56,14 @@ use App\Domain\Step;
 
         <?php if ($step === Step::Controle): ?>
           <?php if (can('quality')): ?><a class="btn primary xl block" href="/qualite/controle/<?= $g['id'] ?>">Ouvrir le contrôle qualité</a><?php else: ?><div class="note">En attente du contrôle qualité.</div><?php endif ?>
+          <?php if (\App\Core\Auth::isManager() && can('quality', 'validate')): ?>
+          <details><summary class="small">Dérogation (responsable) : passer sans contrôle conforme</summary>
+            <form method="post" action="/pieces/<?= $g['id'] ?>/derogation" class="form"><?= csrf_field() ?>
+              <div class="field"><input class="input" name="reason" minlength="10" placeholder="Motif détaillé (obligatoire, tracé dans l'audit)" required></div>
+              <button class="btn ghost-danger">Accorder la dérogation</button>
+            </form>
+          </details>
+          <?php endif ?>
         <?php elseif (in_array($step, [Step::Pret, Step::Retire], true)): ?>
           <div class="note"><?= $step === Step::Pret ? 'Pièce prête, en attente de retrait.' : 'Pièce remise au client.' ?></div>
         <?php elseif ($st === GarmentStatus::Bloque): ?>

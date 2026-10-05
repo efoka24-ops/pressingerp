@@ -95,6 +95,7 @@ test('RG5 : le contrôle qualité et les étapes finales ne se valident pas depu
 test('emballage : l\'emplacement de rangement est obligatoire', function () {
     Auth::actAs(fx_user('atelier', fx_agency()));
     $g = fx_piece('complet', 'emballage');
+    Database::insert('quality_checks', ['garment_id' => $g, 'user_id' => Auth::id(), 'result' => 'conforme', 'created_at' => now()]);   // le contrôle qualité a eu lieu
     throws(fn() => (new WorkflowService())->complete($g), 'rail');
     (new WorkflowService())->complete($g, null, 'R-07');
     same('pret', Database::value('SELECT step FROM garments WHERE id = ?', [$g]));

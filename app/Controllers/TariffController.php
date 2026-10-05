@@ -13,7 +13,8 @@ final class TariffController extends Controller
 {
     public function index(): void
     {
-        $articles = Database::all('SELECT id, name, unit FROM articles WHERE active = 1 ORDER BY sort, name');
+        $allArticles = Database::all('SELECT id, name, unit, fragile, active FROM articles ORDER BY active DESC, sort, name');
+        $articles = array_values(array_filter($allArticles, fn($a) => (int)$a['active'] === 1));
         $lists = Database::all(
             'SELECT l.*, a.name agency, c.name client FROM price_lists l LEFT JOIN agencies a ON a.id = l.agency_id LEFT JOIN clients c ON c.id = l.client_id ORDER BY l.active DESC, l.id'
         );
@@ -32,6 +33,7 @@ final class TariffController extends Controller
             'title'    => 'Tarifs',
             'lists'    => $lists,
             'articles' => $articles,
+            'catalog'  => $allArticles,
             'agencies' => Database::all('SELECT id, name FROM agencies WHERE is_workshop = 0 ORDER BY name'),
             'kinds'    => PricingService::KINDS,
             'history'  => $this->int('histo') ? Database::all(
@@ -39,6 +41,27 @@ final class TariffController extends Controller
                 [$this->int('histo')]
             ) : [],
         ]);
+    }
+
+    public function createArticle(): void
+    {
+        $f = $this->required(['name' => 'Nom de la pièce', 'reason' => 'Motif']);
+        try {
+            (new PricingService())->createArticle($f['name'], $this->str('unit'), (bool)$this->int('fragile'), $this->int('price'), $f['reason']);
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok('Pièce ajoutée au catalogue, avec son prix standard. Elle est disponible à la réception.', '/tarifs');
+    }
+
+    public function updateArticle(string $id): void
+    {
+        try {
+            $changed = (new PricingService())->updateArticle((int)$id, $this->str('name'), (bool)$this->int('fragile'), (bool)$this->int('active'), $this->str('reason'));
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage());
+        }
+        $this->ok($changed ? 'Pièce mise à jour.' : 'Aucun changement.', '/tarifs');
     }
 
     public function createList(): void

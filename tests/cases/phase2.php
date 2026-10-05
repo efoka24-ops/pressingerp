@@ -193,3 +193,51 @@ test('numérotation : codes de commande et de pièces uniques et suivis', functi
     same(20, count(array_unique($numbers)), 'doublon de numéro');
     same('T-' . date('Y') . '-000001', $numbers[0]);
 });
+
+// --- Catalogue : l'administrateur ajoute et gère les pièces ------------------------------------------
+
+test('catalogue : ajouter une pièce crée son prix standard, disponible tout de suite à la réception', function () {
+    Auth::actAs(fx_user('direction', fx_agency()));
+    $svc = new PricingService();
+    $id = $svc->createArticle('Abaya brodée ' . bin2hex(random_bytes(2)), 'piece', true, 8500, 'Nouvelle pièce');
+    $a = Database::one('SELECT * FROM articles WHERE id = ?', [$id]);
+    same(1, (int)$a['active']);
+    same(1, (int)$a['fragile']);
+    PricingService::resetCache();
+    same(8500, $svc->price($id, 0, fx_agency())['price'], 'prix standard applicable');
+    $log = Database::one("SELECT * FROM audit_log WHERE action = 'article.create' AND entity_id = ?", [$id]);
+    ok($log !== null && $log['reason'] === 'Nouvelle pièce');
+    // la pièce se vend : devis immédiat, photo exigée car fragile
+    $q = $svc->quote(fx_client(), ServiceLevel::Standard, [['article_id' => $id, 'qty' => 2]]);
+    same(17000, $q['total']);
+    same('article fragile', $q['lines'][0]['photo_reason']);
+});
+
+test('catalogue : contrôles (nom, unité, prix, motif, doublon)', function () {
+    Auth::actAs(fx_user('admin', fx_agency()));
+    $svc = new PricingService();
+    $name = 'Pièce unique ' . bin2hex(random_bytes(2));
+    throws(fn() => $svc->createArticle('X', 'piece', false, 1000, 'm'), '2 à 80');
+    throws(fn() => $svc->createArticle($name, 'kg', false, 1000, 'm'), 'Unité');
+    throws(fn() => $svc->createArticle($name, 'piece', false, 0, 'm'), 'Prix invalide');
+    throws(fn() => $svc->createArticle($name, 'piece', false, 1000, ''), 'Motif');
+    $svc->createArticle($name, 'm2', false, 2000, 'ok');
+    throws(fn() => $svc->createArticle(strtoupper($name), 'piece', false, 1000, 'm'), 'existe déjà');
+});
+
+test('catalogue : modifier ou retirer une pièce, avec motif et audit; elle disparaît du poste hors-ligne', function () {
+    [$ws, , $agency] = fx_station();
+    $svc = new PricingService();
+    $id = $svc->createArticle('Kaftan ' . bin2hex(random_bytes(2)), 'piece', false, 3000, 'Création');
+    $snap = (new \App\Services\OfflineService())->snapshot($ws);
+    ok(in_array($id, array_column($snap['articles'], 'id'), true), 'visible hors-ligne');
+    throws(fn() => $svc->updateArticle($id, 'Kaftan', false, true, ''), 'Motif');
+    ok($svc->updateArticle($id, 'Kaftan long ' . bin2hex(random_bytes(2)), true, true, 'Précision du nom'));
+    ok(!$svc->updateArticle($id, (string)Database::value('SELECT name FROM articles WHERE id = ?', [$id]), true, true, 'Rien'), 'inchangé');
+    ok($svc->updateArticle($id, (string)Database::value('SELECT name FROM articles WHERE id = ?', [$id]), true, false, 'Plus proposé'));
+    $snap = (new \App\Services\OfflineService())->snapshot($ws);
+    ok(!in_array($id, array_column($snap['articles'], 'id'), true), 'retiré du poste hors-ligne');
+    $log = Database::one("SELECT * FROM audit_log WHERE action = 'article.update' AND entity_id = ? ORDER BY id DESC LIMIT 1", [$id]);
+    ok($log !== null && $log['reason'] === 'Plus proposé' && str_contains((string)$log['old_value'], '"active":1'), 'audit ancienne valeur');
+    same(1, (int)Database::value('SELECT COUNT(*) FROM articles WHERE id = ?', [$id]), 'jamais supprimée');
+});

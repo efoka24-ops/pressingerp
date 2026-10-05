@@ -33,6 +33,7 @@ $v = fn(string $f) => '/assets/' . $f . '?v=' . (is_file(BASE_PATH . '/public/as
       <a class="btn" href="/commandes">Retour au site</a>
     </div>
   </div>
+  <div class="flash warn" id="http-warning" hidden><b>Site sans HTTPS.</b> Le mode hors-ligne fonctionne tant que cette page reste <b>ouverte</b>. Si la connexion coupe, ne l'actualisez pas (F5) et ne la fermez pas : le navigateur ne pourrait plus la recharger. Les commandes saisies restent enregistrées sur cet appareil.</div>
   <div id="msg"></div>
 
   <div class="card pad form" id="setup" hidden>
@@ -96,6 +97,7 @@ $v = fn(string $f) => '/assets/' . $f . '?v=' . (is_file(BASE_PATH . '/public/as
   </div>
   <div style="margin-top:14px"><button class="btn sm" id="btn-forget" type="button">Retirer ce poste (efface les données locales)</button></div>
 </div>
+<script>if (!window.isSecureContext) { document.getElementById('http-warning').hidden = false; }</script>
 <script src="<?= e($v('offline-core.js')) ?>"></script>
 <script src="<?= e($v('offline.js')) ?>"></script>
 </body>

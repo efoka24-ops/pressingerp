@@ -1,5 +1,5 @@
 <?php use App\Domain\Step; ?>
-<div class="head"><span class="mono small muted">05</span><h1>Qualité</h1><span class="small muted">7 derniers jours</span></div>
+<div class="head"><span class="mono small muted">05</span><h1>Qualité</h1><span class="small muted">7 derniers jours</span><div class="actions"><a class="btn" href="/qualite/sinistres">Sinistres</a> <a class="btn" href="/qualite/derogations">Dérogations</a></div></div>
 
 <div class="grid g4">
   <div class="card kpi"><span class="l">Taux de reprise</span><span class="v <?= $rate > $target ? 'orange' : 'green' ?>"><?= str_replace('.', ',', (string)$rate) ?> %</span><span class="small muted">objectif ≤ <?= $target ?> %</span></div>
