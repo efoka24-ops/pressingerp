@@ -8,6 +8,7 @@ use App\Controllers\AlertController;
 use App\Controllers\AuthController;
 use App\Controllers\BIController;
 use App\Controllers\CashController;
+use App\Controllers\ReportController;
 use App\Controllers\DeliveryController;
 use App\Controllers\ClientController;
 use App\Controllers\CommercialController;
@@ -44,6 +45,8 @@ $r->get('/ouvrir-un-pressing/merci', [AgencyRequestController::class, 'thanks'])
 $r->get('/', [HomeController::class, 'index']);
 $r->get('/comptoir', [HomeController::class, 'counter'], 'counter');
 $r->get('/cockpit', [HomeController::class, 'cockpit'], 'cockpit');
+$r->get('/rapports/journalier', [ReportController::class, 'daily'], 'cockpit');
+$r->get('/rapports/mensuel', [ReportController::class, 'monthly'], 'cockpit');
 $r->get('/recherche', [HomeController::class, 'search'], 'auth');
 
 // 01 Clients / CRM
@@ -51,6 +54,7 @@ $r->get('/clients', [ClientController::class, 'index'], 'clients');
 $r->get('/clients/nouveau', [ClientController::class, 'create'], 'clients');
 $r->post('/clients', [ClientController::class, 'store'], 'clients');
 $r->get('/clients/{id}', [ClientController::class, 'show'], 'clients');
+$r->get('/clients/{id}/releve', [ClientController::class, 'statement'], 'clients');
 $r->get('/clients/{id}/modifier', [ClientController::class, 'edit'], 'clients');
 $r->post('/clients/{id}', [ClientController::class, 'update'], 'clients');
 $r->get('/api/clients', [ClientController::class, 'lookup'], 'orders');
@@ -75,6 +79,7 @@ $r->get('/livraisons', [DeliveryController::class, 'index'], 'delivery');
 $r->get('/livraisons/collecte', [DeliveryController::class, 'newCollect'], 'delivery:create');
 $r->post('/livraisons/collecte', [DeliveryController::class, 'createCollect'], 'delivery:create');
 $r->get('/livraisons/{id}', [DeliveryController::class, 'show'], 'delivery');
+$r->get('/livraisons/{id}/bon', [DeliveryController::class, 'note'], 'delivery');
 $r->post('/livraisons/{id}/affecter', [DeliveryController::class, 'assign'], 'delivery:update');
 $r->post('/livraisons/{id}/adresse', [DeliveryController::class, 'address'], 'delivery:update');
 $r->post('/livraisons/{id}/collectee', [DeliveryController::class, 'collected'], 'delivery:update');
@@ -130,6 +135,7 @@ $r->post('/commercial/devis', [CommercialController::class, 'storeQuote'], 'comm
 $r->get('/commercial/devis/{id}', [CommercialController::class, 'quote'], 'commercial');
 $r->post('/commercial/devis/{id}/decision', [CommercialController::class, 'decideQuote'], 'commercial:update');
 $r->post('/recouvrement/encaisser', [CommercialController::class, 'settle'], 'commercial:update');
+$r->get('/recouvrement/etat', [CommercialController::class, 'receivablesDoc'], 'commercial');
 $r->get('/recouvrement', [CommercialController::class, 'receivables'], 'commercial');
 $r->post('/recouvrement/relance', [CommercialController::class, 'remind'], 'commercial');
 
@@ -144,6 +150,7 @@ $r->get('/stocks', [StockController::class, 'index'], 'stock');
 $r->post('/stocks/articles', [StockController::class, 'store'], 'stock');
 $r->post('/stocks/mouvement', [StockController::class, 'move'], 'stock');
 $r->post('/stocks/commande', [StockController::class, 'order'], 'stock');
+$r->get('/stocks/commande/{id}/bon', [StockController::class, 'orderDoc'], 'stock');
 $r->post('/stocks/commande/{id}/reception', [StockController::class, 'receive'], 'stock');
 
 // 10 Business Intelligence

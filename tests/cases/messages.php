@@ -119,7 +119,7 @@ test('envoi : succès, référence du fournisseur et journal des tentatives', fu
     try {
         $c = fx_msg_client();
         $id = MessageService::queueText($c, 'Bonjour test');
-        $r = MessageService::dispatch(50);
+        $r = MessageService::dispatch(5000);
         ok($r['sent'] >= 1);
         $m = msg_row($id);
         same('envoye', $m['status']);
@@ -139,14 +139,14 @@ test('envoi : deux essais par canal puis repli sur le canal suivant (SE11)', fun
         $now = time();
         $c = fx_msg_client();
         $id = MessageService::queueText($c, 'Votre commande est prête');
-        MessageService::dispatch(50, $now);
+        MessageService::dispatch(5000, $now);
         $m = msg_row($id);
         same('en_attente', $m['status']);
         same('sms', $m['channel'], 'même canal au premier échec');
         ok($m['next_try_at'] !== null && strtotime($m['next_try_at']) >= $now + 290, 'nouvel essai dans 5 minutes');
-        MessageService::dispatch(50, $now + 240);
+        MessageService::dispatch(5000, $now + 240);
         same(1, $sms->triesFor('Votre commande est prête'), 'pas d\'essai avant l\'heure');
-        MessageService::dispatch(50, $now + 310);
+        MessageService::dispatch(5000, $now + 310);
         $m = msg_row($id);
         same('envoye', $m['status']);
         same('whatsapp', $m['channel'], 'repli sur WhatsApp après deux échecs SMS');
@@ -167,7 +167,7 @@ test('envoi : tous les canaux en échec => échec définitif et alerte à la ré
         $client = (int)Database::value('SELECT client_id FROM orders WHERE id = ?', [$order]);
         $id = MessageService::queueEvent('ready', $client, ['numero' => 'N', 'retrait' => '', 'solde' => '', 'lien' => ''], $order);
         foreach ([0, 310, 700, 1100, 1500] as $dt) {
-            MessageService::dispatch(50, $now + $dt);
+            MessageService::dispatch(5000, $now + $dt);
         }
         $m = msg_row($id);
         same('echec', $m['status']);
@@ -184,7 +184,7 @@ test('envoi : tous les canaux en échec => échec définitif et alerte à la ré
 test('envoi : client sans coordonnée valide => échec immédiat et alerte (SE10)', function () {
     $c = fx_msg_client(['phone' => (string)random_int(1000, 99999)]);
     $id = MessageService::queueEvent('deposit', $c, ['numero' => 'N', 'pieces' => '1 pièce', 'date_promise' => 'demain', 'lien' => '']);
-    MessageService::dispatch(50);
+    MessageService::dispatch(5000);
     $m = msg_row($id);
     same('echec', $m['status']);
     same('Aucune coordonnée valide', $m['error']);
@@ -197,14 +197,14 @@ test('envoi : canal non configuré => jamais « envoyé » pour de faux, le mess
         $now = time();
         $c = fx_msg_client();
         $id = MessageService::queueText($c, 'Bonjour');
-        $r = MessageService::dispatch(50, $now);
+        $r = MessageService::dispatch(5000, $now);
         ok($r['waiting'] >= 1);
         $m = msg_row($id);
         same('en_attente', $m['status'], 'toujours en attente');
         ok(str_contains((string)$m['error'], 'Aucun canal'));
         AlertService::tick($now + 3600);
         ok(Database::value("SELECT id FROM alerts WHERE dedupe_key = 'msgstuck' AND closed_at IS NULL") !== null, 'l\'administrateur est alerté');
-        MessageService::dispatch(50, $now + 25 * 3600);
+        MessageService::dispatch(5000, $now + 25 * 3600);
         same('echec', msg_row($id)['status'], 'abandon après 24 h');
     } finally {
         Gateways::override(null);

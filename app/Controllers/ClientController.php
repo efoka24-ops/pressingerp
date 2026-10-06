@@ -76,6 +76,19 @@ final class ClientController extends Controller
         ]);
     }
 
+    /** Relevé de compte imprimable : commandes, factures, règlements et solde dû sur une période. */
+    public function statement(string $id): void
+    {
+        $c = $this->find((int)$id);
+        try {
+            $s = \App\Services\ReportService::statement((int)$c['id'], $this->str('du') ?: date('Y-m-d', strtotime('-90 days')), $this->str('au') ?: date('Y-m-d'));
+        } catch (\DomainException $e) {
+            $this->fail($e->getMessage(), '/clients/' . $c['id']);
+        }
+        Audit::log('client.statement', 'clients', (int)$c['id'], ['du' => $s['from'], 'au' => $s['to']]);
+        $this->view('clients/statement', ['title' => 'Relevé · ' . $c['name'], 's' => $s]);
+    }
+
     public function create(): void
     {
         $this->view('clients/form', ['title' => 'Nouveau client', 'c' => null, 'back' => $this->str('retour')]);

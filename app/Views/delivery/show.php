@@ -27,6 +27,8 @@ $manager = Auth::isManager();
     <?php if ($d['driver_id']): ?><div class="kv"><span>Livreur</span><span class="right"><?= e(array_column($drivers, 'name', 'id')[$d['driver_id']] ?? App\Core\Database::value('SELECT name FROM users WHERE id = ?', [$d['driver_id']])) ?></span></div><?php endif ?>
   </div>
 
+  <?php if ($d['kind'] === 'deliver'): ?><div class="no-print"><a class="btn" href="/livraisons/<?= $id ?>/bon">Bon de livraison (impression)</a></div><?php endif ?>
+
   <?php if ($d['kind'] === 'collect' && $d['status'] === 'a_collecter' && ($driver || $staff)): ?>
   <form method="post" action="/livraisons/<?= $id ?>/collectee" class="card pad"><?= csrf_field() ?>
     <button class="btn primary lg block">J'ai récupéré les vêtements</button></form>

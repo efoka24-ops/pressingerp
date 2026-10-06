@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Services\CashService;
 use App\Services\ClientService;
 use App\Services\DashboardService;
+use App\Services\SearchService;
 
 final class HomeController extends Controller
 {
@@ -63,36 +64,17 @@ final class HomeController extends Controller
         ]);
     }
 
-    /** Recherche universelle : n° pièce, n° commande, facture, téléphone, nom */
+    /** Recherche universelle : n° pièce, n° commande, facture, avoir, devis, téléphone, nom */
     public function search(): void
     {
         $q = $this->str('q');
-        $Q = strtoupper($q);
-        if (preg_match('/^PR-\d{4}-\d{6}-\d{2,}$/', $Q)) {
-            redirect(Auth::can('production') ? '/scan?code=' . urlencode($Q) : '/tracabilite?q=' . urlencode($Q));
+        $r = SearchService::run($q);
+        if ($r['redirect']) {
+            redirect($r['redirect']);
         }
-        if (preg_match('/^PR-\d{4}-\d{6}$/', $Q) && ($id = Database::value('SELECT id FROM orders WHERE number = ?' . Auth::scopeSql(), [$Q]))) {
-            redirect('/commandes/' . $id);
+        if (count($r['clients']) === 1 && !$r['orders'] && !$r['invoices'] && !$r['garments']) {
+            redirect('/clients/' . $r['clients'][0]['id']);
         }
-        if (preg_match('/^FA-\d{4}-\d{5}$/', $Q) && ($id = Database::value('SELECT id FROM invoices WHERE number = ?', [$Q]))) {
-            redirect('/commercial/factures/' . $id);
-        }
-        $clients = [];
-        $orders = [];
-        if (mb_strlen($q) >= 2) {
-            $digits = preg_replace('/\D/', '', $q) ?? '';
-            $clients = Database::all(
-                'SELECT id, code, name, phone, is_vip, type FROM clients WHERE name LIKE :q OR code LIKE :q' . (strlen($digits) >= 4 ? ' OR phone LIKE :d' : '') . ' ORDER BY name LIMIT 20',
-                ['q' => "%$q%"] + (strlen($digits) >= 4 ? ['d' => "%$digits%"] : [])
-            );
-            $orders = Database::all(
-                'SELECT o.id, o.number, o.status, o.total, o.created_at, c.name client FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.number LIKE ?' . Auth::scopeSql('o.agency_id') . ' ORDER BY o.id DESC LIMIT 20',
-                ["%$Q%"]
-            );
-        }
-        if (count($clients) === 1 && !$orders && Auth::can('clients')) {
-            redirect('/clients/' . $clients[0]['id']);
-        }
-        $this->view('home/search', ['title' => 'Recherche', 'q' => $q, 'clients' => $clients, 'orders' => $orders]);
+        $this->view('home/search', ['title' => 'Recherche', 'q' => $q] + $r);
     }
 }

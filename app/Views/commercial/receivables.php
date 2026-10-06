@@ -1,4 +1,4 @@
-<?= partial('commercial/_nav', []) ?>
+<?= partial('commercial/_nav', ['actions' => '<a class="btn" href="/recouvrement/etat">État imprimable</a>']) ?>
 
 <div class="card pad form">
   <div class="card-h"><span class="muted">Encours total</span><span class="mono strong" style="font-size:24px"><?= money($total) ?> <small>FCFA</small></span></div>

@@ -199,6 +199,18 @@ final class CommercialController extends Controller
         $this->ok('Réponse enregistrée.', '/commercial/devis/' . (int)$id);
     }
 
+    /** État des créances imprimable (même calcul que l'écran de recouvrement). */
+    public function receivablesDoc(): void
+    {
+        $rows = (new InvoiceService())->aging();
+        $buckets = ['b0' => 'Non échu', 'b30' => '1–30 j', 'b60' => '31–60 j', 'b90' => '61–90 j', 'b90p' => '> 90 j'];
+        $totals = [];
+        foreach (array_keys($buckets) as $b) {
+            $totals[$b] = array_sum(array_column($rows, $b));
+        }
+        $this->view('commercial/receivables_doc', ['title' => 'État des créances', 'rows' => $rows, 'buckets' => $buckets, 'totals' => $totals, 'total' => array_sum($totals)]);
+    }
+
     public function receivables(): void
     {
         $rows = (new InvoiceService())->aging();

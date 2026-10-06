@@ -11,6 +11,7 @@ use App\Services\ClientService;
   <div class="actions">
     <?php if ($c['preferred_channel'] === 'whatsapp'): ?><a class="btn" href="https://wa.me/<?= e(ltrim($c['phone'], '+')) ?>" target="_blank" rel="noopener">WhatsApp</a><?php endif ?>
     <a class="btn" href="tel:<?= e($c['phone']) ?>">Appeler</a>
+    <a class="btn" href="/clients/<?= $c['id'] ?>/releve">Relevé de compte</a>
     <a class="btn" href="/clients/<?= $c['id'] ?>/modifier">Modifier</a>
     <?php if (can('orders')): ?><a class="btn primary" href="/commandes/nouvelle?client=<?= $c['id'] ?>">Nouvelle commande</a><?php endif ?>
   </div>

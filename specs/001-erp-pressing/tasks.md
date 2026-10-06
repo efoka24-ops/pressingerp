@@ -123,8 +123,8 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T143 Tests de réconciliation KPI vs SQL brut (SC-003)
 
 ## Phase 13 — Documents et recherche
-- [ ] T150 Documents manquants : devis, bon de commande, bon de livraison, relevé client, état de créances, rapports journalier et mensuel
-- [ ] T151 Recherche : ajouter la facture ; vérifier téléphone, nom, commande, QR, vêtement
+- [x] T150 Documents manquants : devis, bon de commande, bon de livraison, relevé client, état de créances, rapports journalier et mensuel
+- [x] T151 Recherche : ajouter la facture ; vérifier téléphone, nom, commande, QR, vêtement
 
 ## Phase 14 — Recette et mise en production
 - [ ] T160 Recette par module (spec §32, 10 tests critiques) sur le site déployé

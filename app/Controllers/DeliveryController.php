@@ -81,6 +81,23 @@ final class DeliveryController extends Controller
         ]);
     }
 
+    /** Bon de livraison imprimable : pièces remises, adresse, solde à percevoir, cases de signature. */
+    public function note(string $id): void
+    {
+        $d = $this->find((int)$id);
+        $order = $d['order_id'] ? Database::one('SELECT * FROM orders WHERE id = ?', [$d['order_id']]) : null;
+        $this->view('delivery/note', [
+            'title'    => 'Bon de livraison',
+            'd'        => $d,
+            'order'    => $order,
+            'client'   => Database::one('SELECT name FROM clients WHERE id = ?', [$d['client_id']]),
+            'agency'   => (string)Database::value('SELECT name FROM agencies WHERE id = ?', [$d['agency_id']]),
+            'driver'   => $d['driver_id'] ? (string)Database::value('SELECT name FROM users WHERE id = ?', [$d['driver_id']]) : '',
+            'garments' => $order ? Database::all('SELECT label, code, qty FROM garments WHERE order_id = ? ORDER BY seq', [$order['id']]) : [],
+            'balance'  => $order && !(int)$order['on_account'] ? max(0, (int)$order['total'] - (int)$order['paid']) : 0,
+        ]);
+    }
+
     public function newCollect(): void
     {
         $client = ($id = $this->int('client')) ? Database::one('SELECT id, code, name, phone FROM clients WHERE id = ?', [$id]) : null;

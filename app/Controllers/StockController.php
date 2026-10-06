@@ -26,6 +26,16 @@ final class StockController extends Controller
         ]);
     }
 
+    /** Bon de commande fournisseur imprimable. */
+    public function orderDoc(string $id): void
+    {
+        $po = Database::one(
+            'SELECT p.*, s.name item, s.unit, s.supplier, s.quantity, u.name user FROM purchase_orders p JOIN stock_items s ON s.id = p.stock_item_id LEFT JOIN users u ON u.id = p.user_id WHERE p.id = ?',
+            [(int)$id]
+        ) ?? throw new \App\Core\HttpException(404, 'Bon de commande introuvable');
+        $this->view('stock/po', ['title' => 'Bon de commande BC-' . str_pad((string)$po['id'], 5, '0', STR_PAD_LEFT), 'po' => $po]);
+    }
+
     public function store(): void
     {
         $req = $this->required(['name' => 'Désignation', 'unit' => 'Unité']);

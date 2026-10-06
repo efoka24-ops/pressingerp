@@ -14,7 +14,8 @@ $ob = $objectives;
     <?php foreach ($agencies as $a): ?><a href="/cockpit?agence=<?= (int)$a['id'] ?>" class="<?= $ag === (int)$a['id'] ? 'on' : '' ?>"><?= e($a['name']) ?></a><?php endforeach ?>
     <?php endif ?>
   </div>
-  <span class="small muted" style="margin-left:auto">Comparé à la moyenne des 4 derniers <?= e(day_name()) ?>s</span>
+  <span class="small" style="margin-left:auto"><a href="/rapports/journalier<?= $ag ? '?agence=' . (int)$ag : '' ?>">Rapport du jour</a> · <a href="/rapports/mensuel<?= $ag ? '?agence=' . (int)$ag : '' ?>">Rapport du mois</a></span>
+  <span class="small muted">Comparé à la moyenne des 4 derniers <?= e(day_name()) ?>s</span>
 </div>
 <?= partial('home/_fresh', ['fresh' => $fresh]) ?>
 

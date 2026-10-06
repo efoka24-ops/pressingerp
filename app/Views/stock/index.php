@@ -53,7 +53,7 @@
     <?php if (!$orders): ?><span class="small muted">Aucune.</span><?php endif ?>
     <?php foreach ($orders as $po): ?>
       <div class="kv"><span><?= e($po['item']) ?> · <?= $num($po['qty']) ?> <?= e($po['unit']) ?><br><small><?= e($po['supplier'] ?? '') ?> · le <?= dt($po['created_at'], 'd/m') ?></small></span>
-        <form method="post" action="/stocks/commande/<?= $po['id'] ?>/reception"><?= csrf_field() ?><button class="btn sm">Réceptionner</button></form></div>
+        <span class="row" style="gap:6px"><a class="btn sm" href="/stocks/commande/<?= $po['id'] ?>/bon">Bon</a><form method="post" action="/stocks/commande/<?= $po['id'] ?>/reception"><?= csrf_field() ?><button class="btn sm">Réceptionner</button></form></span></div>
     <?php endforeach ?>
   </div>
 </div>
