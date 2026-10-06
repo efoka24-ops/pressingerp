@@ -117,10 +117,10 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T132 Respect du consentement (RG18)
 
 ## Phase 12 — Stocks et BI (US8, US12)
-- [ ] T140 Alerte stock critique dans le cockpit
-- [ ] T141 Fraîcheur des données affichée (SE22) ; périmètre agence refusé et journalisé (SE23)
-- [ ] T142 Alertes managériales : CA −25 %, commandes à risque, réclamations, productivité
-- [ ] T143 Tests de réconciliation KPI vs SQL brut (SC-003)
+- [x] T140 Alerte stock critique dans le cockpit
+- [x] T141 Fraîcheur des données affichée (SE22) ; périmètre agence refusé et journalisé (SE23)
+- [x] T142 Alertes managériales : CA −25 %, commandes à risque, réclamations, productivité
+- [x] T143 Tests de réconciliation KPI vs SQL brut (SC-003)
 
 ## Phase 13 — Documents et recherche
 - [ ] T150 Documents manquants : devis, bon de commande, bon de livraison, relevé client, état de créances, rapports journalier et mensuel

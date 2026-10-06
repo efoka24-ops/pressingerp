@@ -16,6 +16,7 @@ $ob = $objectives;
   </div>
   <span class="small muted" style="margin-left:auto">Comparé à la moyenne des 4 derniers <?= e(day_name()) ?>s</span>
 </div>
+<?= partial('home/_fresh', ['fresh' => $fresh]) ?>
 
 <div class="grid g5">
   <div class="card kpi dark">

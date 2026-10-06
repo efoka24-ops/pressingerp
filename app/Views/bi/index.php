@@ -11,8 +11,15 @@ $shade = function (int $n) use ($heatMax): string {
 ?>
 <div class="head">
   <span class="mono small muted">10</span><h1>Business Intelligence</h1><span class="small muted">12 derniers mois</span>
-  <div class="actions"><a class="btn" href="/bi/export">Exporter CSV</a></div>
+  <div class="actions"><a class="btn" href="/bi/export<?= $ag ? '?agence=' . (int)$ag : '' ?>">Exporter CSV</a></div>
 </div>
+<?php if ($allAgencies): ?>
+<div class="tabs">
+  <a href="/bi" class="<?= $ag === 0 ? 'on' : '' ?>">Groupe consolidé</a>
+  <?php foreach ($allAgencies as $a): ?><a href="/bi?agence=<?= (int)$a['id'] ?>" class="<?= $ag === (int)$a['id'] ? 'on' : '' ?>"><?= e($a['name']) ?></a><?php endforeach ?>
+</div>
+<?php endif ?>
+<?= partial('home/_fresh', ['fresh' => $fresh]) ?>
 
 <div class="grid g4">
   <div class="card kpi"><span class="l">CA 12 mois</span><span class="v"><?= short_money((int)$kpi['revenue']) ?></span><?php if ($growth !== null): ?><span class="small <?= $growth >= 0 ? 'green' : 'red' ?>"><?= $growth >= 0 ? '▲' : '▼' ?> <?= str_replace('.', ',', (string)abs($growth)) ?> % vs année précédente</span><?php endif ?></div>

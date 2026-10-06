@@ -119,6 +119,23 @@ final class Auth
         }
     }
 
+    /**
+     * Agence à afficher dans une vue de pilotage (cockpit, BI). Un utilisateur limité à son agence ne peut pas en demander une autre :
+     * la demande est refusée et journalisée (SE23). 0 = tout le groupe.
+     */
+    public static function resolveAgencyScope(int $requested, string $page): int
+    {
+        $scope = self::scopedAgencyId();
+        if ($scope === 0) {
+            return max(0, $requested);
+        }
+        if ($requested !== 0 && $requested !== $scope) {
+            Audit::log('access.denied', 'agencies', $requested, ['reason' => 'périmètre agence', 'page' => $page, 'own' => $scope]);
+            throw new HttpException(403, 'Accès refusé : cette vue est limitée à votre agence.');
+        }
+        return $scope;
+    }
+
     public static function logout(): void
     {
         $_SESSION = [];

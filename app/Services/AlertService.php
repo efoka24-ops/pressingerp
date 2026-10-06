@@ -224,6 +224,13 @@ final class AlertService
         ReminderService::run($now);
         self::sync('uncollected', ReminderService::managerAlerts($now), $now);
 
+        // Indicateurs de pilotage du groupe en alerte (CA, retards, réclamations, productivité) : à la direction
+        $kpi = [];
+        foreach ((new DashboardService(0))->managerial($now) as [$tone, $title, $detail, , $key]) {
+            $kpi[$key] = [$title . ' — ' . $detail, null, null, null, null];
+        }
+        self::sync('kpi_alert', $kpi, $now);
+
         // Encours client au-dessus du plafond
         $wanted = [];
         foreach (Database::all("SELECT id, name, credit_limit FROM clients WHERE type = 'pro' AND credit_limit > 0") as $c) {

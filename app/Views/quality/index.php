@@ -42,12 +42,12 @@
         <?php foreach ($complaints as $cp): $age = (int)((time() - strtotime($cp['created_at'])) / 86400); ?>
           <tr>
             <td class="mono"><?= e($cp['number']) ?></td>
-            <td><a href="/clients/<?= $cp['client_id'] ?>"><?= e($cp['client']) ?></a><?= $cp['order_number'] ? '<div class="mono small muted">' . e($cp['order_number']) . '</div>' : '' ?></td>
+            <td><?php if (can('clients')): ?><a href="/clients/<?= $cp['client_id'] ?>"><?= e($cp['client']) ?></a><?php else: ?><?= e($cp['client']) ?><?php endif ?><?= $cp['order_number'] ? '<div class="mono small muted">' . e($cp['order_number']) . '</div>' : '' ?></td>
             <td><?= e($cp['subject']) ?><?= $cp['resolution'] ? '<div class="small muted">' . e($cp['resolution']) . '</div>' : '' ?></td>
             <td class="<?= $cp['status'] === 'cloturee' ? 'green' : ($cp['status'] === 'ouverte' ? 'red' : 'orange') ?>"><?= e($statuses[$cp['status']] ?? $cp['status']) ?><?= $cp['status'] !== 'cloturee' ? " · $age j" : '' ?></td>
             <td><?= e($cp['assignee'] ?? '—') ?></td>
             <td>
-              <?php if ($cp['status'] !== 'cloturee'): ?>
+              <?php if ($cp['status'] !== 'cloturee' && can('quality', 'update')): ?>
               <details><summary class="small accent" style="cursor:pointer">Traiter</summary>
                 <form method="post" action="/qualite/reclamations/<?= $cp['id'] ?>" class="form" style="min-width:260px;padding-top:8px">
                   <?= csrf_field() ?>
