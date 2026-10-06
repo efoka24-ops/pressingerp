@@ -14,6 +14,18 @@ use App\Domain\PaymentMethod;
  */
 final class MobileMoneyService
 {
+    /**
+     * Libellé vu par le client sur son téléphone : la passerelle le limite à 22 caractères. Le numéro de commande est gardé en entier
+     * (sans tirets) ; c'est le préfixe qui est raccourci si besoin, jamais le numéro.
+     */
+    public static function customerMessage(string $orderNumber): string
+    {
+        $ref = preg_replace('/[^A-Za-z0-9]/', '', $orderNumber) ?? '';
+        $ref = substr($ref, -22);
+        $room = 22 - strlen($ref) - 1;
+        return $room >= 3 ? substr('Pressing', 0, $room) . ' ' . $ref : $ref;
+    }
+
     /** @return array{intent:array,message:string} */
     public function initiate(int $orderId, PaymentMethod $method, string $phone): array
     {
@@ -48,7 +60,7 @@ final class MobileMoneyService
                 'phoneNumber'     => $msisdn,
                 'reference'       => $reference,
                 'description'     => 'Commande ' . $o['number'],
-                'customerMessage' => 'Pressing ' . $o['number'],
+                'customerMessage' => self::customerMessage($o['number']),
                 'metadata'        => ['order_id' => $orderId, 'intent_id' => $id],
             ]);
             Database::update('payment_intents', ['provider_ref' => isset($res['id']) ? substr((string)$res['id'], 0, 80) : null, 'updated_at' => now()], 'id = :id', ['id' => $id]);

@@ -62,3 +62,12 @@ test('momo : FAILED marque l\'intention en échec, un CONFIRMED tardif est quand
     same('confirmed', $svc->handleWebhook(['reference' => $ref, 'status' => 'CONFIRMED', 'amount' => 3000]), 'l\'argent a bougé');
     same(1, (int)Database::value('SELECT COUNT(*) FROM payments WHERE order_id = ?', [$order]));
 });
+
+test('Mobile Money : le libellé affiché au client tient dans les 22 caractères de la passerelle', function () {
+    same('Pressing PR2026000001', App\Services\MobileMoneyService::customerMessage('PR-2026-000001'));
+    foreach (['PR-2026-000001', 'PR-2026-9999999', 'PR-2026-99999999', 'PR-2026-999999999999999', 'X', ''] as $n) {
+        $m = App\Services\MobileMoneyService::customerMessage($n);
+        ok(strlen($m) <= 22, "« $m » (" . strlen($m) . ' caractères)');
+    }
+    ok(str_ends_with(App\Services\MobileMoneyService::customerMessage('PR-2026-99999999'), 'PR202699999999'), 'le numéro est gardé en entier, c\'est le préfixe qui raccourcit');
+});
