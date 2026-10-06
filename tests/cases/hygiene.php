@@ -72,3 +72,15 @@ test('hygiène : chaque route pointe vers un contrôleur et une méthode qui exi
     same([], $bad, 'routes cassées');
     ok(count($router->routes()) > 100, 'toutes les routes sont chargées');
 });
+
+test('scripts de page : les outils qu\'ils utilisent au chargement (esc, debounce, CSRF) sont définis avant le contenu', function () {
+    $layout = (string)file_get_contents(BASE_PATH . '/app/Views/layout.php');
+    $core = strpos($layout, '/assets/core.js');
+    ok($core !== false && $core < strpos($layout, '$content'), 'core.js est chargé dans l\'en-tête, avant le contenu de la page');
+    $app = (string)file_get_contents(BASE_PATH . '/public/assets/app.js');
+    ok(!str_contains($app, 'window.debounce') && !str_contains($app, 'window.esc ') && !str_contains($app, 'window.CSRF'), 'app.js (chargé en fin de page) ne définit pas ce dont une page a besoin au chargement');
+    $coreJs = (string)file_get_contents(BASE_PATH . '/public/assets/core.js');
+    foreach (['window.CSRF', 'window.esc', 'window.debounce'] as $needle) {
+        ok(str_contains($coreJs, $needle), "core.js définit $needle");
+    }
+});

@@ -134,3 +134,16 @@ Aucune anomalie bloquante connue dans la logique. Limites assumées :
 - Pas de copie de sauvegarde hors hébergeur.
 - Valeur déclarée d'un vêtement non saisissable à la réception.
 - Imprimante d'étiquettes et tablette non testées.
+
+## 6. Parcours dans un vrai navigateur (ajout du 6 octobre 2026)
+
+Les tests automatiques de la section 2 vérifient la logique du serveur. Ils n'ouvraient pas les écrans dans un navigateur : une erreur JavaScript sur l'écran « Nouvelle commande » (outils chargés après le script de la page) empêchait d'ajouter un article. Elle est corrigée, et deux scripts pilotent maintenant un vrai Chrome sur le site (`tests/e2e/`) :
+
+| Script | Ce qu'il fait | Écrit en base ? |
+|---|---|---|
+| `reception.e2e.js` | Connexion, ouverture de caisse, création du client, ajout d'articles, photo obligatoire, acompte, étiquettes, ticket, encaissement du solde, reçu, clôture de caisse sans écart | **Oui** (un client « Test E2E », une commande, des paiements) |
+| `pages-js.e2e.js` | Ouvre 41 pages principales et signale toute erreur JavaScript ou réponse serveur en erreur | Non |
+
+Dernier passage (6 octobre 2026) : parcours de réception complet réussi ; 41 pages sans erreur JavaScript ni erreur serveur.
+Commande : `BASE=… LOGIN=… PASS=… node tests/e2e/reception.e2e.js` (Node 18+, `npm install puppeteer-core`, Chrome installé).
+Non couvert par ces scripts : l'atelier au scan, le contrôle qualité, la livraison avec signature au doigt, la remise au comptoir. À refaire à la main sur le matériel réel (section 4).

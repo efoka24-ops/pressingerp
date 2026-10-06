@@ -20,6 +20,7 @@ $alertCount = $u ? \App\Services\AlertService::count($u) : 0;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset('/assets/app.css')) ?>">
+<script src="<?= e(asset('/assets/core.js')) ?>"></script>
 </head>
 <body>
 <div class="app">

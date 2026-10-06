@@ -1,7 +1,5 @@
 (function () {
   'use strict';
-  var csrf = document.querySelector('meta[name="csrf"]');
-  window.CSRF = csrf ? csrf.content : '';
 
   // Confirmation avant action sensible
   document.addEventListener('submit', function (e) {
@@ -28,14 +26,6 @@
     el.addEventListener('change', sync); sync();
   });
 
-  window.esc = function (s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  };
-  window.debounce = function (fn, ms) {
-    var t; return function () { var a = arguments, s = this; clearTimeout(t); t = setTimeout(function () { fn.apply(s, a); }, ms); };
-  };
 })();
 
 // Commande enregistrée : le brouillon local n'a plus lieu d'être

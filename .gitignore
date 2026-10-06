@@ -11,3 +11,4 @@ ops/config.local.generated.php
 ops/.last-deploy
 tests/e2e/node_modules/
 tests/e2e/package*.json
+tests/e2e/shots/
