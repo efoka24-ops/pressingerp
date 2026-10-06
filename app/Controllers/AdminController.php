@@ -104,9 +104,9 @@ final class AdminController extends Controller
             $this->fail('Motif obligatoire.');
         }
         $password = substr(strtr(base64_encode(random_bytes(12)), '+/=', 'xyz'), 0, 12);
-        Database::update('users', ['password_hash' => password_hash($password, PASSWORD_DEFAULT)], 'id = :id', ['id' => $u['id']]);
+        Database::update('users', ['password_hash' => password_hash($password, PASSWORD_DEFAULT), 'must_change_password' => 1], 'id = :id', ['id' => $u['id']]);
         Audit::log('user.reset_password', 'users', (int)$u['id'], ['login' => $u['login']], null, null, $reason);
-        $this->ok("Nouveau mot de passe de {$u['login']} : $password (affiché une seule fois).", '/admin/utilisateurs');
+        $this->ok("Nouveau mot de passe provisoire de {$u['login']} : $password (affiché une seule fois ; à changer à la prochaine connexion).", '/admin/utilisateurs');
     }
 
     // --- Agences ------------------------------------------------------------------------------

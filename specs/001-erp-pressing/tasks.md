@@ -127,9 +127,9 @@ Format : `- [ ] Txxx [P] Description (chemin)` — `[x]` fait, `[~]` fait en par
 - [x] T151 Recherche : ajouter la facture ; vérifier téléphone, nom, commande, QR, vêtement
 
 ## Phase 14 — Recette et mise en production
-- [ ] T160 Recette par module (spec §32, 10 tests critiques) sur le site déployé
-- [ ] T161 Formation par rôle, guide d'exploitation
-- [ ] T162 Bascule, hypercare, bilan pilote
+- [~] T160 Recette par module (spec §32, 10 tests critiques) sur le site déployé — cahier et passage automatique faits (docs/recette.md, 183 tests, restauration d'essai OK) ; reste la recette sur matériel réel, à signer par module
+- [~] T161 Formation par rôle, guide d'exploitation — guide (docs/guide-exploitation.md) et supports par rôle (docs/formation-par-role.md) rédigés ; reste les séances de formation
+- [~] T162 Bascule, hypercare, bilan pilote — plan, conditions, suivi 30 jours et modèle de bilan rédigés (docs/bascule-et-hypercare.md) ; la bascule et le pilote restent à conduire avec la direction
 
 ## Dépendances
 0 → 1 → 2 → 3 → 4 → 5. Phase 6 après 3 ; 7 après 1 ; 8 après 4–5 ; 9 après 5 et 7 ; 10 après 5 ; 11 après 7 ; 12 après 5–6 ; 13 après 10 ; 14 en dernier. La sauvegarde (T029) démarre dès la phase 1.
