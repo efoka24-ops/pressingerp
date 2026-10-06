@@ -7,6 +7,10 @@
     <div class="field"><label>Votre téléphone</label><input class="input lg mono" name="phone" value="<?= e(old('phone')) ?>" placeholder="6 70 12 34 56" inputmode="tel" required></div>
     <button class="btn primary lg block">Suivre ma commande</button>
   </form>
+  <a class="card pad" href="/guide.html" style="display:flex;flex-direction:column;gap:2px;text-decoration:none;color:inherit">
+    <b>Guide d'utilisation</b>
+    <span class="small muted">Comment utiliser la plateforme, métier par métier : réception, atelier, caisse, livraison, direction. Et comment un client suit sa commande.</span>
+  </a>
   <div class="small center">
     <a href="/login">Espace du personnel</a> · <a href="/ouvrir-un-pressing">Ouvrir mon pressing sur la plateforme</a>
   </div>

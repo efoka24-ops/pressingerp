@@ -31,7 +31,7 @@
       <?php endif ?>
       <button class="btn primary lg block">Se connecter</button>
       <div class="small">
-        <a href="/suivi">Suivre ma commande</a> · <a href="/ouvrir-un-pressing">Ouvrir mon pressing</a><br>
+        <a href="/guide.html">Guide d'utilisation</a> · <a href="/suivi">Suivre ma commande</a> · <a href="/ouvrir-un-pressing">Ouvrir mon pressing</a><br>
         <?php if ($pinMode): ?><a href="/login">Connexion par mot de passe</a><?php else: ?><a href="/login?mode=pin">Connexion par code PIN (poste atelier)</a><?php endif ?>
       </div>
     </form>

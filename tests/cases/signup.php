@@ -204,4 +204,5 @@ test('accueil public : un client qui ouvre le site tombe sur le suivi de command
     unset($_SESSION['uid']);
     $html = render_page('/');
     ok(str_contains($html, 'Où en est mon linge') && str_contains($html, 'name="number"') && str_contains($html, 'name="phone"') && str_contains($html, '/login'));
+    ok(str_contains($html, '/guide.html') && is_file(BASE_PATH . '/public/guide.html'), 'guide d\'utilisation accessible depuis l\'accueil');
 });
