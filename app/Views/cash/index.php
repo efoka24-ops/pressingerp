@@ -58,7 +58,7 @@ use App\Domain\PaymentMethod; ?>
       <?php if (!$sessions): ?><span class="small muted">Aucune caisse ouverte aujourd'hui.</span><?php endif ?>
       <?php foreach ($sessions as $cs): ?>
         <div class="kv">
-          <span><?= e($cs['agency']) ?> · <?= e($cs['label']) ?><br><small><?= e($cs['user']) ?> · <?= money($cs['cashed']) ?> encaissés</small></span>
+          <span><?= e($cs['agency']) ?> · <?= e($cs['label']) ?><br><small><?= e($cs['user']) ?> · <?= money($cs['cashed']) ?> encaissés<?php if ((int)$cs['user_id'] === Auth::id() || Auth::can('cash', 'validate')): ?> · <a href="/caisse/<?= (int)$cs['id'] ?>/etat">État de caisse</a><?php endif ?></small></span>
           <?php if ($cs['status'] === 'ouverte'): ?><span class="muted">Ouverte<?php if ((int)$cs['user_id'] !== Auth::id() && Auth::can('cash', 'validate')): ?> · <a href="/caisse/<?= (int)$cs['id'] ?>/cloture">Clôturer</a><?php endif ?></span>
           <?php elseif ((int)$cs['diff'] !== 0): ?><span class="red" title="<?= e($cs['justification']) ?>">Écart <?= money($cs['diff']) ?></span>
           <?php else: ?><span class="green">Clôturée · 0</span><?php endif ?>

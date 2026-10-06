@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide Pressing ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mise en page : un manuel à navigation latérale par métier, lu en continu ; chaque chapitre suit la même trame (écran, journée, refus du système). */
+:root {
+  --bg: #F1F5F6;
+  --surface: #FFFFFF;
+  --ink: #11262B;
+  --muted: #566C72;
+  --line: #D3DFE2;
+  --accent: #0E6B73;
+  --accent-ink: #0A4D53;
+  --accent-soft: #DDEFF0;
+  --warn: #8F5A0C;
+  --warn-soft: #FBF0D8;
+  --stop: #A92F25;
+  --stop-soft: #FBE5E1;
+  --ok: #276B43;
+  --ok-soft: #DFF1E6;
+  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1A1D; --surface: #14242A; --ink: #E3EEF0; --muted: #94AAB0; --line: #26414A;
+    --accent: #4FC1C9; --accent-ink: #8EDDE2; --accent-soft: #123A40;
+    --warn: #E9B352; --warn-soft: #382C13; --stop: #F2907F; --stop-soft: #3B1D19; --ok: #72CC94; --ok-soft: #153322;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1A1D; --surface: #14242A; --ink: #E3EEF0; --muted: #94AAB0; --line: #26414A;
+  --accent: #4FC1C9; --accent-ink: #8EDDE2; --accent-soft: #123A40;
+  --warn: #E9B352; --warn-soft: #382C13; --stop: #F2907F; --stop-soft: #3B1D19; --ok: #72CC94; --ok-soft: #153322;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; padding-inline: 16px; padding-block: 0 64px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+a { color: var(--accent-ink); text-underline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.12; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: .9em; }
+kbd { font-family: var(--font-mono); font-size: .82em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--surface); }
+
+.wrap { max-width: 1120px; margin-inline: auto; display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 48px; }
+@media (max-width: 880px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+
+/* Navigation */
+.side { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; padding-block: 28px; max-height: 100vh; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 20px; margin-bottom: 22px; }
+.brand i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--accent); color: var(--surface); font-style: normal; font-size: 18px; }
+.side h4 { margin: 18px 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.side a { display: block; padding: 6px 10px; margin-inline: -10px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14.5px; }
+.side a:hover { background: var(--accent-soft); }
+.side a[aria-current="true"] { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+@media (max-width: 880px) {
+  .side { top: env(safe-area-inset-top, 0px); z-index: 5; max-height: none; overflow: visible; padding-block: 10px; margin-inline: -16px; padding-inline: 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .brand { display: none; }
+  .side h4 { display: none; }
+  .side nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+  .side a { white-space: nowrap; margin: 0; border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; }
+  .side a[aria-current="true"] { border-color: var(--accent); }
+}
+
+/* Contenu */
+main { min-width: 0; padding-block: 40px 0; display: flex; flex-direction: column; gap: 64px; }
+.cover { display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--accent-ink); }
+.cover h1 { font-size: clamp(34px, 6vw, 56px); font-weight: 800; }
+.lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.who { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 6px; }
+.who a { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0; }
+.who a:hover { border-color: var(--accent); }
+.who b { font-family: var(--font-display); font-size: 17px; }
+.who span { font-size: 13px; color: var(--muted); }
+
+section { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.sec-head { display: flex; flex-direction: column; gap: 8px; }
+.sec-head h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 800; }
+.sec-head p { color: var(--muted); max-width: 64ch; }
+h3 { font-size: 20px; font-weight: 700; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; min-width: 0; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.cols > * { min-width: 0; }
+
+/* Trame d'un chapitre de métier */
+.role { gap: 18px; }
+.role-band { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+.role-band h2 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; }
+.role-band .tag { font-size: 13px; color: var(--muted); }
+.screen { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.screen .lab { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-right: 4px; }
+.chip { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 3px 9px; font-size: 13.5px; }
+.chip em { font-style: normal; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.day { counter-reset: s; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.day li { counter-increment: s; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; }
+.day li::before { content: counter(s); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--surface); font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.day b { font-weight: 600; }
+.refuse, .note { border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
+.refuse { background: var(--stop-soft); border: 1px solid color-mix(in srgb, var(--stop) 35%, var(--line)); }
+.refuse h3, .note h3 { font-size: 15px; font-family: var(--font-body); font-weight: 700; letter-spacing: .02em; }
+.refuse h3 { color: var(--stop); }
+.refuse ul, .note ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.note { background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); }
+.note h3 { color: var(--warn); }
+.tip { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius: 12px; padding: 14px 16px; font-size: 15px; }
+
+/* Parcours d'une pièce */
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.flow li { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c, var(--accent)); border-radius: 10px; padding: 10px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.flow b { font-family: var(--font-display); font-size: 16px; }
+.flow span { font-size: 12.5px; color: var(--muted); }
+.flow .a-front { --c: #0E6B73; } .flow .a-atelier { --c: #5C7DB8; } .flow .a-qual { --c: #C58A1E; } .flow .a-auto { --c: #7B8B90; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* Objets du métier, reproduits */
+.specimens { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; align-items: start; }
+.spec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.spec figcaption { font-size: 13.5px; color: var(--muted); }
+.paper { background: #FFFFFF; color: #15252A; border: 1px solid var(--line); border-radius: 6px; padding: 14px 14px 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; box-shadow: 0 1px 0 rgba(0,0,0,.04); }
+.paper .c { text-align: center; }
+.paper hr { border: 0; border-top: 1px dashed #9AAAB0; margin: 8px 0; }
+.paper .row { display: flex; justify-content: space-between; gap: 10px; }
+.paper .big { font-size: 15px; font-weight: 600; }
+.qr { display: block; margin: 8px auto; width: 92px; height: 92px; }
+.track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-block: 10px; }
+.track div { text-align: center; font-size: 11.5px; padding: 8px 2px; border-radius: 6px; background: #E6EEF0; color: #44585E; font-family: var(--font-body); }
+.track .done { background: #0E6B73; color: #FFFFFF; } .track .cur { background: #FBF0D8; color: #7A4E08; outline: 2px solid #C58A1E; }
+
+/* Tableaux et pastilles */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 14px; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 2px 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.p-ok { background: var(--ok-soft); color: var(--ok); } .p-warn { background: var(--warn-soft); color: var(--warn); } .p-stop { background: var(--stop-soft); color: var(--stop); }
+dl.gl { display: grid; grid-template-columns: minmax(130px, 220px) minmax(0, 1fr); gap: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+dl.gl dt, dl.gl dd { margin: 0; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+dl.gl dt { font-weight: 600; background: color-mix(in srgb, var(--accent-soft) 55%, var(--surface)); }
+dl.gl dt:last-of-type, dl.gl dd:last-of-type { border-bottom: 0; }
+@media (max-width: 560px) { dl.gl { grid-template-columns: minmax(0, 1fr); } dl.gl dt { border-bottom: 0; padding-bottom: 2px; } }
+footer { color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--line); padding-top: 18px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+@media print { .side { display: none; } .wrap { display: block; } body { background: #fff; } .panel, .refuse, .note, .tip, .flow li { break-inside: avoid; } }
+</style>
+
+<div class="wrap">
+  <aside class="side">
+    <div class="brand"><i>P</i>Pressing</div>
+    <nav aria-label="Chapitres">
+      <h4>Commencer</h4>
+      <a href="#demarrer">Se connecter</a>
+      <a href="#parcours">Le parcours d'une pièce</a>
+      <h4>Par métier</h4>
+      <a href="#comptoir">Réception et caisse</a>
+      <a href="#atelier">Atelier</a>
+      <a href="#superviseur">Superviseur</a>
+      <a href="#qualite">Contrôle qualité</a>
+      <a href="#livreur">Livreur</a>
+      <a href="#responsable">Responsable d'agence</a>
+      <a href="#direction">Direction</a>
+      <a href="#commercial">Commercial</a>
+      <a href="#marketing">Marketing</a>
+      <a href="#admin">Administrateur</a>
+      <a href="#client">Le client</a>
+      <h4>Repères</h4>
+      <a href="#couleurs">Couleurs et alertes</a>
+      <a href="#glossaire">Mots du métier</a>
+      <a href="#depannage">Si ça bloque</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="cover">
+      <span class="eyebrow">Guide d'utilisation</span>
+      <h1>Du dépôt à la remise, pièce par pièce.</h1>
+      <p class="lead">Ce guide explique comment chaque personne du pressing utilise la plateforme : réception, atelier, caisse, livraison, direction. Choisissez votre métier, suivez votre journée, et retenez ce que le système refuse de faire à votre place.</p>
+      <div class="who" aria-label="Choisir son métier">
+        <a href="#comptoir"><b>Réception et caisse</b><span>Commandes, paiements, retrait</span></a>
+        <a href="#atelier"><b>Atelier</b><span>Scanner, prendre en charge, terminer</span></a>
+        <a href="#qualite"><b>Contrôle qualité</b><span>9 critères, reprises</span></a>
+        <a href="#livreur"><b>Livreur</b><span>Tournée, preuve, encaissement</span></a>
+        <a href="#responsable"><b>Responsable d'agence</b><span>Autoriser, clôturer, piloter</span></a>
+        <a href="#client"><b>Vous êtes client ?</b><span>Suivre votre commande</span></a>
+      </div>
+    </header>
+
+    <section id="demarrer">
+      <div class="sec-head"><h2>Se connecter et se repérer</h2><p>Un compte par personne, jamais partagé : chaque action est enregistrée à votre nom.</p></div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Connexion</h3>
+          <ol class="day" style="margin-top:12px">
+            <li><span>Ouvrez l'adresse de la plateforme, puis <b>Espace du personnel</b>.</span></li>
+            <li><span>Saisissez votre <b>nom d'utilisateur</b> et votre <b>mot de passe</b>. Il n'y a pas d'agence à choisir : c'est celle de votre compte.</span></li>
+            <li><span>Sur un poste d'atelier, utilisez <b>Connexion par code PIN</b> : plus rapide avec des mains mouillées.</span></li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h3>Premier accès</h3>
+          <p style="margin-top:10px">Si on vous a remis un <b>mot de passe provisoire</b>, la plateforme vous demande d'en choisir un nouveau avant tout : 10 caractères au minimum, avec des lettres et des chiffres. Vous pouvez le changer plus tard à l'adresse <code>/mot-de-passe</code>.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>L'écran</h3>
+        <div class="cols" style="margin-top:14px">
+          <div><b>Menu de gauche</b><p style="color:var(--muted);font-size:15px">Seuls les modules que votre métier peut utiliser apparaissent, numérotés de 00 à 13. Si un menu manque, c'est que votre rôle n'y a pas droit.</p></div>
+          <div><b>Barre du haut</b><p style="color:var(--muted);font-size:15px">Recherche universelle (<kbd>F2</kbd>) : téléphone, nom, numéro de commande, code d'étiquette, facture. <kbd>F1</kbd> ouvre une nouvelle commande. <b>Alertes</b> affiche le nombre d'alertes qui vous concernent et se met à jour toutes les 30 secondes.</p></div>
+          <div><b>En bas à gauche</b><p style="color:var(--muted);font-size:15px">Votre nom, votre rôle et <b>Sortir</b>. Déconnectez-vous en quittant un poste partagé.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="parcours">
+      <div class="sec-head"><h2>Le parcours d'une pièce</h2><p>Chaque vêtement reçoit une étiquette QR à la réception et la garde jusqu'à la remise. Chaque étape est enregistrée avec l'heure et la personne.</p></div>
+      <ol class="flow">
+        <li class="a-front"><b>Réception</b><span>Comptoir : commande, photo, étiquette</span></li>
+        <li class="a-atelier"><b>Tri</b><span>Atelier</span></li>
+        <li class="a-atelier"><b>Détachage</b><span>Atelier</span></li>
+        <li class="a-atelier"><b>Lavage</b><span>Atelier</span></li>
+        <li class="a-atelier"><b>Séchage</b><span>Atelier</span></li>
+        <li class="a-atelier"><b>Repassage</b><span>Atelier</span></li>
+        <li class="a-atelier"><b>Finition</b><span>Atelier</span></li>
+        <li class="a-qual"><b>Contrôle</b><span>Qualité : 9 critères</span></li>
+        <li class="a-atelier"><b>Emballage</b><span>Atelier : emplacement de rangement</span></li>
+        <li class="a-auto"><b>Prêt</b><span>Automatique quand toutes les pièces le sont</span></li>
+        <li class="a-front"><b>Retiré / Livré</b><span>Comptoir ou livreur</span></li>
+      </ol>
+      <div class="legend"><span><i style="background:#0E6B73"></i>Comptoir et livraison</span><span><i style="background:#5C7DB8"></i>Atelier</span><span><i style="background:#C58A1E"></i>Qualité</span><span><i style="background:#7B8B90"></i>Automatique</span></div>
+      <div class="tip">Toutes les pièces ne passent pas par toutes les étapes : une chemise n'a pas de détachage. Chaque type de traitement suit son propre parcours, et le <b>contrôle qualité reste toujours obligatoire</b> avant l'emballage.</div>
+      <div class="specimens">
+        <figure class="spec" style="margin:0">
+          <div class="paper" aria-label="Exemple d'étiquette">
+            <div class="c big">PR-2026-000124-02</div>
+            <svg class="qr" viewBox="0 0 21 21" role="img" aria-label="QR code d'exemple" shape-rendering="crispEdges">
+              <rect width="21" height="21" fill="#fff"/>
+              <g fill="#15252A">
+                <path d="M0 0h7v7H0z M1 1v5h5V1z" fill-rule="evenodd"/><rect x="2" y="2" width="3" height="3"/>
+                <path d="M14 0h7v7h-7z M15 1v5h5V1z" fill-rule="evenodd"/><rect x="16" y="2" width="3" height="3"/>
+                <path d="M0 14h7v7H0z M1 15v5h5v-5z" fill-rule="evenodd"/><rect x="2" y="16" width="3" height="3"/>
+                <rect x="8" y="1" width="1" height="2"/><rect x="10" y="0" width="2" height="1"/><rect x="9" y="3" width="3" height="1"/><rect x="12" y="2" width="1" height="3"/><rect x="8" y="5" width="2" height="1"/><rect x="11" y="6" width="1" height="2"/>
+                <rect x="0" y="8" width="2" height="1"/><rect x="3" y="9" width="1" height="2"/><rect x="5" y="8" width="2" height="2"/><rect x="1" y="11" width="3" height="1"/><rect x="6" y="12" width="1" height="1"/>
+                <rect x="8" y="8" width="3" height="1"/><rect x="9" y="10" width="1" height="3"/><rect x="11" y="9" width="2" height="2"/><rect x="12" y="12" width="2" height="1"/><rect x="8" y="14" width="1" height="2"/><rect x="10" y="15" width="3" height="1"/><rect x="9" y="18" width="2" height="2"/><rect x="12" y="17" width="1" height="3"/>
+                <rect x="14" y="8" width="2" height="2"/><rect x="17" y="9" width="3" height="1"/><rect x="15" y="11" width="1" height="2"/><rect x="18" y="12" width="2" height="2"/><rect x="14" y="14" width="3" height="1"/><rect x="18" y="16" width="1" height="3"/><rect x="15" y="17" width="2" height="3"/><rect x="20" y="19" width="1" height="2"/>
+              </g>
+            </svg>
+            <div class="c">Chemise blanche · 2e pièce de la commande</div>
+          </div>
+          <figcaption><b>L'étiquette.</b> Le code se lit : commande <span class="mono">PR-2026-000124</span>, pièce n° <span class="mono">02</span>. Le QR du dessin est un exemple, pas un code réel.</figcaption>
+        </figure>
+        <figure class="spec" style="margin:0">
+          <div class="paper" aria-label="Exemple de ticket">
+            <div class="c big">PRESSING</div>
+            <div class="c">Agence de Garoua · NIU M0123…</div>
+            <hr>
+            <div class="row"><span>Commande</span><b>PR-2026-000124</b></div>
+            <div class="row"><span>Client</span><span>A. Bello</span></div>
+            <div class="row"><span>Prête le</span><span>jeu. 08/10 · 17:00</span></div>
+            <hr>
+            <div class="row"><span>3 pièces</span><span>12 500</span></div>
+            <div class="row"><b>Total TTC</b><b>12 500 FCFA</b></div>
+            <div class="row"><span>dont TVA 19,25 %</span><span>2 021</span></div>
+            <div class="row"><span>Acompte</span><span>5 000</span></div>
+            <div class="row"><b>Reste à payer</b><b>7 500</b></div>
+            <hr>
+            <div class="c">Suivi en ligne : scannez le QR du ticket</div>
+          </div>
+          <figcaption><b>Le ticket remis au client.</b> Prix TTC, TVA incluse, NIU, reste à payer et QR de suivi. Montants d'exemple.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ===== RÉCEPTION ET CAISSE ===== -->
+    <section id="comptoir" class="role">
+      <div class="role-band"><h2>Réception et caisse</h2><span class="tag">comptoir</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>00</em>Accueil comptoir</span><span class="chip"><em>01</em>Clients</span><span class="chip"><em>02</em>Commandes</span><span class="chip"><em>03</em>Traçabilité</span><span class="chip"><em>06</em>Caisse</span><span class="chip"><em>13</em>Livraisons</span><span class="chip"><em>12</em>Tarifs (lecture)</span></div>
+
+      <h3>Ouvrir la journée</h3>
+      <ol class="day">
+        <li><span><b>Caisse</b> &gt; <b>Ouvrir ma caisse</b> : saisissez le fond de caisse que vous avez compté. Sans caisse ouverte, aucun encaissement n'est possible.</span></li>
+      </ol>
+
+      <h3>Prendre une commande</h3>
+      <ol class="day">
+        <li><span>Appuyez sur <kbd>F1</kbd> ou sur <b>+ Commande</b>. Cherchez le client par téléphone ou par nom. S'il n'existe pas : <b>+ Créer un nouveau client</b>, avec <b>prénom et nom complets</b> et un numéro valide (9 chiffres commençant par 6 ou 2).</span></li>
+        <li><span>Touchez chaque article. Pour chaque pièce, précisez la marque, la couleur, la matière, les taches ou dommages, et le traitement.</span></li>
+        <li><span>Ajoutez la <b>photo</b> : obligatoire pour une pièce fragile, déjà abîmée ou de valeur.</span></li>
+        <li><span>Choisissez le niveau de service (standard, express, VIP) : la date promise s'affiche. Cochez <b>Livraison à domicile</b> si besoin et notez l'adresse.</span></li>
+        <li><span>Encaissez l'acompte si le client en laisse un, puis validez. La fiche de la commande s'ouvre avec les <b>étiquettes</b> à imprimer : collez-en une sur chaque pièce.</span></li>
+        <li><span>Imprimez le <b>ticket</b> et remettez-le au client.</span></li>
+      </ol>
+
+      <h3>Remettre une commande</h3>
+      <ol class="day">
+        <li><span>Ouvrez la commande « prête » (liste des retraits sur l'Accueil comptoir).</span></li>
+        <li><span>Encaissez le solde, avec un ou deux modes pour un même reçu : espèces, Orange Money, MTN MoMo ou carte. Appuyez sur <b>Remettre</b>.</span></li>
+        <li><span>Une commande en livraison à domicile se remet depuis la <b>fiche de livraison</b>, jamais depuis le comptoir.</span></li>
+      </ol>
+
+      <h3>Clôturer la caisse</h3>
+      <ol class="day">
+        <li><span><b>Caisse</b> &gt; <b>Clôturer ma caisse</b>. Comptez chaque mode de paiement et saisissez le montant trouvé.</span></li>
+        <li><span>S'il y a un écart, même d'<b>un seul franc</b>, la justification écrite est obligatoire. Le responsable est alerté.</span></li>
+        <li><span>Imprimez l'<b>état de caisse</b> depuis la liste des caisses du jour.</span></li>
+      </ol>
+
+      <div class="cols">
+        <div class="refuse"><h3>Le système refuse</h3><ul>
+          <li>un client sans nom complet ou sans numéro valide ;</li>
+          <li>une pièce de valeur sans photo ;</li>
+          <li>un article sans tarif : prévenez le responsable ;</li>
+          <li>de remettre une commande dont une pièce n'a pas passé le contrôle qualité ;</li>
+          <li>d'encaisser sans caisse ouverte ;</li>
+          <li>de clôturer avec un écart non justifié.</li></ul></div>
+        <div class="note"><h3>À savoir</h3><ul>
+          <li><b>Remise ou annulation d'un encaissement :</b> un responsable doit l'autoriser. Il saisit son identifiant et son mot de passe sur votre poste.</li>
+          <li><b>Imprimante d'étiquettes en panne :</b> ouvrez la liste manuelle des codes (<code>?manuel=1</code>) et écrivez-les à la main ; régularisez ensuite.</li>
+          <li><b>Réimprimer des étiquettes</b> demande un motif.</li>
+          <li><b>Réseau coupé :</b> le mode <b>Hors-ligne</b> permet de continuer à recevoir. Gardez la page ouverte sans l'actualiser, et laissez la synchronisation se faire au retour du réseau.</li></ul></div>
+      </div>
+      <div class="tip"><b>Client en compte (entreprise sous contrat) :</b> la commande n'est pas payée au comptoir, elle est facturée en fin de mois. Au-delà du plafond d'encours du client, elle est bloquée : seul un responsable peut accorder une dérogation, avec un motif.</div>
+    </section>
+
+    <!-- ===== ATELIER ===== -->
+    <section id="atelier" class="role">
+      <div class="role-band"><h2>Atelier</h2><span class="tag">tri, détachage, lavage, séchage, repassage, finition, emballage</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>04</em>Production</span><span class="chip"><em>03</em>Traçabilité (lecture)</span></div>
+      <ol class="day">
+        <li><span>Connectez-vous avec votre <b>code PIN</b> sur le poste d'atelier.</span></li>
+        <li><span><b>Scannez</b> l'étiquette de la pièce, ou saisissez son code si le QR est illisible.</span></li>
+        <li><span>Appuyez sur <b>Prendre</b> : la pièce est à vous, avec votre nom et l'heure.</span></li>
+        <li><span>Travail terminé : <b>Terminer</b>. La pièce passe au service suivant, qui voit aussitôt le nombre de pièces disponibles.</span></li>
+        <li><span>À l'<b>emballage</b>, indiquez l'emplacement de rangement (rail, casier) avant de terminer.</span></li>
+        <li><span>Un accroc, une tache qui ne part pas, une machine en panne : <b>Signaler un incident</b> avec le type et une description. La pièce est bloquée et le superviseur est prévenu.</span></li>
+      </ol>
+      <div class="cols">
+        <div class="refuse"><h3>Le système refuse</h3><ul>
+          <li>que vous terminiez une pièce prise en charge par un collègue (seul un superviseur le peut) ;</li>
+          <li>de valider à votre place le contrôle qualité ou les étapes finales ;</li>
+          <li>de terminer l'emballage sans emplacement de rangement.</li></ul></div>
+        <div class="note"><h3>À savoir</h3><ul>
+          <li>Terminer une pièce que personne n'a prise en charge la prend d'abord en charge à votre nom.</li>
+          <li>Une pièce que le contrôle renvoie en reprise réapparaît dans votre étape, avec le motif.</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ===== SUPERVISEUR ===== -->
+    <section id="superviseur" class="role">
+      <div class="role-band"><h2>Superviseur de production</h2><span class="tag">pilotage de l'atelier</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>04</em>Production</span><span class="chip"><em>05</em>Qualité (lecture)</span><span class="chip"><em>02</em>Commandes (lecture)</span></div>
+      <ol class="day">
+        <li><span>Lisez le <b>tableau des étapes</b> : combien de pièces à chaque poste, lesquelles attendent depuis trop longtemps, lesquelles sont bloquées.</span></li>
+        <li><span>Traitez les <b>incidents</b> : décidez, puis débloquez la pièce.</span></li>
+        <li><span>Reprenez la main sur une pièce dont l'opérateur est absent.</span></li>
+        <li><span>Surveillez les alertes de pièces non prises en charge : elles montent au responsable si personne ne réagit.</span></li>
+      </ol>
+      <div class="refuse"><h3>Le système refuse</h3><ul><li>de modifier une commande ou un paiement : vous êtes en lecture seule ;</li><li>de valider un contrôle qualité : c'est le métier du contrôleur.</li></ul></div>
+    </section>
+
+    <!-- ===== QUALITE ===== -->
+    <section id="qualite" class="role">
+      <div class="role-band"><h2>Contrôle qualité</h2><span class="tag">avant l'emballage</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>05</em>Qualité</span><span class="chip"><em>04</em>Production (lecture)</span><span class="chip"><em>03</em>Traçabilité (lecture)</span></div>
+      <ol class="day">
+        <li><span>Ouvrez la pièce arrivée au contrôle et évaluez les <b>9 critères</b>.</span></li>
+        <li><span><b>Conforme</b> : la pièce passe à l'emballage.</span></li>
+        <li><span><b>À reprendre</b> : choisissez l'étape où la renvoyer et écrivez le <b>motif</b>. La pièce repart, et tout contrôle précédent est annulé : elle repassera par vous.</span></li>
+        <li><span>Suivez les <b>réclamations</b> clients : statut, responsable, résolution, dédommagement.</span></li>
+      </ol>
+      <div class="cols">
+        <div class="refuse"><h3>Le système refuse</h3><ul><li>une reprise sans motif ni étape ;</li><li>qu'une pièce passe à « Prêt » sans contrôle conforme.</li></ul></div>
+        <div class="note"><h3>Dérogation</h3><p>Seul un responsable peut autoriser le passage d'une pièce sans contrôle conforme : motif détaillé obligatoire, tracé à son nom, valable pour cette seule pièce. Une reprise ultérieure l'annule.</p></div>
+      </div>
+    </section>
+
+    <!-- ===== LIVREUR ===== -->
+    <section id="livreur" class="role">
+      <div class="role-band"><h2>Livreur</h2><span class="tag">livraisons et collectes à domicile</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>13</em>Ma tournée</span></div>
+      <ol class="day">
+        <li><span>Ouvrez une livraison : adresse, appel du client en un geste, pièces à remettre et <b>reste à payer</b>.</span></li>
+        <li><span><b>Partir livrer</b> : le client reçoit un message avec un <b>code à 4 chiffres</b> à vous donner.</span></li>
+        <li><span>À la remise, au moins <b>une preuve</b> : le code du client, ou sa signature dessinée au doigt, ou une photo.</span></li>
+        <li><span>Encaissez le solde en espèces, Orange Money ou MTN MoMo (référence de la transaction obligatoire pour le mobile). Si le client ne paie pas tout, <b>reportez le solde</b> avec un motif : un responsable doit l'autoriser.</span></li>
+        <li><span>Client absent, adresse introuvable, refus : <b>Livraison impossible</b>. Choisissez le motif et fixez un nouveau créneau ; le client est prévenu.</span></li>
+        <li><span>Une <b>collecte</b> : appuyez sur <b>J'ai récupéré les vêtements</b>. La réception crée ensuite la commande.</span></li>
+      </ol>
+      <div class="cols">
+        <div class="refuse"><h3>Le système refuse</h3><ul><li>de clôturer une livraison sans preuve ;</li><li>de clôturer avec un solde ni encaissé ni reporté ;</li><li>de toucher à la livraison d'un autre livreur.</li></ul></div>
+        <div class="note"><h3>Votre argent</h3><p>Ce que vous encaissez entre dans <b>votre caisse de livraison</b>. Le soir, un responsable la compte avec vous et la clôture, sans tolérance d'écart.</p></div>
+      </div>
+    </section>
+
+    <!-- ===== RESPONSABLE ===== -->
+    <section id="responsable" class="role">
+      <div class="role-band"><h2>Responsable d'agence</h2><span class="tag">votre agence uniquement</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>00</em>Cockpit</span><span class="chip"><em>02</em>Commandes</span><span class="chip"><em>04</em>Production</span><span class="chip"><em>05</em>Qualité</span><span class="chip"><em>06</em>Caisse</span><span class="chip"><em>09</em>Stocks</span><span class="chip"><em>13</em>Livraisons</span></div>
+      <ol class="day">
+        <li><span>Chaque matin, lisez le <b>cockpit</b> : chiffre du jour comparé aux mêmes jours des semaines passées, commandes à risque, alertes.</span></li>
+        <li><span>Ouvrez <b>Alertes</b> et traitez-les. Une alerte ignorée trop longtemps monte à la direction.</span></li>
+        <li><span><b>Autorisez</b> ce que les équipes vous demandent : remise, annulation d'un encaissement, report de solde d'une livraison, dérogation qualité, dérogation au plafond d'un client. Chaque autorisation est enregistrée à votre nom, avec le motif.</span></li>
+        <li><span><b>Clôturez la caisse d'un livreur</b> : Caisse &gt; Caisses du jour &gt; Clôturer.</span></li>
+        <li><span>Suivez les <b>commandes non retirées</b> : relances automatiques à J+2, J+7 et J+15, et alerte pour vous à J+15.</span></li>
+        <li><span>Imprimez le <b>rapport du jour</b> et le <b>rapport du mois</b> (liens en haut à droite du cockpit).</span></li>
+      </ol>
+      <div class="refuse"><h3>Le système refuse</h3><ul><li>de vous montrer ou de modifier une autre agence : la tentative est notée dans le journal d'audit ;</li><li>de laisser passer une remise sans motif.</li></ul></div>
+    </section>
+
+    <!-- ===== DIRECTION ===== -->
+    <section id="direction" class="role">
+      <div class="role-band"><h2>Direction</h2><span class="tag">groupe et agences</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>00</em>Cockpit</span><span class="chip"><em>10</em>Business Intelligence</span><span class="chip"><em>07</em>Commercial</span><span class="chip"><em>08</em>Marketing</span><span class="chip"><em>11</em>Administration (lecture)</span></div>
+      <ol class="day">
+        <li><span>Le <b>cockpit</b> montre le groupe ou une agence (onglets). La ligne <b>« Données calculées à… »</b> indique l'heure des chiffres, la dernière commande et la dernière synchronisation.</span></li>
+        <li><span>Les <b>alertes managériales</b> préviennent quand le CA d'hier baisse de 25 %, quand les retards ou les réclamations dépassent leur seuil, ou quand la productivité chute.</span></li>
+        <li><span>Un <b>écart de caisse</b> reste ouvert tant que vous n'avez pas <b>pris acte</b> dans Alertes.</span></li>
+        <li><span>La <b>BI</b> compare les agences sur 12 mois et exporte en CSV.</span></li>
+        <li><span>Avec l'administrateur, validez les <b>seuils de segmentation</b> clients (bandeau « à vérifier » sur la page Marketing).</span></li>
+      </ol>
+    </section>
+
+    <!-- ===== COMMERCIAL ===== -->
+    <section id="commercial" class="role">
+      <div class="role-band"><h2>Commercial et recouvrement</h2><span class="tag">entreprises sous contrat</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>07</em>Contrats</span><span class="chip"><em>07</em>Facturation</span><span class="chip"><em>07</em>Devis</span><span class="chip"><em>07</em>Recouvrement</span><span class="chip"><em>01</em>Clients</span></div>
+      <ol class="day">
+        <li><span><b>Contrat</b> d'un client professionnel : remise, plafond d'encours, délai de paiement. Renseignez le <b>NIU</b> sur sa fiche client.</span></li>
+        <li><span>Début de mois : <b>Facturation</b> &gt; générer le mois précédent. Une facture par client et par agence, avec HT, TVA, TTC et les deux NIU, numérotée <span class="mono">FA-GAR-2026-00001</span>.</span></li>
+        <li><span>Une facture erronée se corrige par un <b>avoir</b> (fiche facture &gt; Émettre un avoir) : motif, autorisation d'un responsable, montant au plus égal au reste dû.</span></li>
+        <li><span>Le client verse une somme : <b>Recouvrement &gt; Encaisser un versement</b>. Elle est répartie sur ses factures, de la plus ancienne à la plus récente, sous un seul reçu.</span></li>
+        <li><span>Consignez chaque <b>relance</b> (appel, visite, message). Imprimez l'<b>état des créances</b> et le <b>relevé de compte</b> d'un client.</span></li>
+        <li><span>Un <b>devis</b> se fait aux tarifs du client, valable 15 jours par défaut ; notez la réponse du client.</span></li>
+      </ol>
+      <div class="refuse"><h3>Le système refuse</h3><ul><li>une commande en compte au-delà du plafond, sans dérogation motivée d'un responsable ;</li><li>un avoir supérieur au reste dû, ou sur un avoir ;</li><li>un versement supérieur à ce que le client doit.</li></ul></div>
+    </section>
+
+    <!-- ===== MARKETING ===== -->
+    <section id="marketing" class="role">
+      <div class="role-band"><h2>Marketing et fidélité</h2><span class="tag">segments, scénarios, campagnes</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>08</em>Marketing</span><span class="chip"><em>01</em>Clients (lecture)</span><span class="chip"><em>10</em>BI (lecture)</span></div>
+      <ol class="day">
+        <li><span>Lisez les <b>segments</b> : nouveaux, réguliers, occasionnels, à risque, perdus, VIP, fort panier, débiteurs, points à utiliser.</span></li>
+        <li><span><b>Scénarios automatiques</b> (réactivation, fidélité, club VIP) : relisez le message, réglez le délai entre deux envois au même client, puis cochez <b>Actif</b>. Ils sont éteints à l'installation.</span></li>
+        <li><span><b>Campagne ponctuelle</b> : choisissez la cible, le canal et le message, puis envoyez ou planifiez.</span></li>
+      </ol>
+      <div class="note"><h3>Consentement</h3><p>Une offre ne part que vers les clients qui l'ont <b>acceptée pour ce canal</b>. Les messages utiles (commande prête, retard, livraison) ne sont pas concernés. Les variables <span class="mono">{prenom}</span>, <span class="mono">{nom}</span> et <span class="mono">{points}</span> sont remplacées pour chaque client.</p></div>
+    </section>
+
+    <!-- ===== ADMIN ===== -->
+    <section id="admin" class="role">
+      <div class="role-band"><h2>Administrateur</h2><span class="tag">super administrateur</span></div>
+      <div class="screen"><span class="lab">Votre écran</span><span class="chip"><em>11</em>Administration</span><span class="chip">tous les modules</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Je veux…</th><th>Où</th></tr></thead>
+        <tbody>
+          <tr><td>créer un utilisateur</td><td>Administration &gt; Utilisateurs. Le mot de passe provisoire s'affiche une seule fois ; la personne le change à sa première connexion.</td></tr>
+          <tr><td>réinitialiser un mot de passe oublié</td><td>Administration &gt; Utilisateurs &gt; Réinitialiser (motif obligatoire).</td></tr>
+          <tr><td>ouvrir un nouveau pressing</td><td>Le futur responsable remplit la page publique « Ouvrir mon pressing ». Vous validez dans Administration &gt; Demandes d'ouverture : l'agence et son responsable sont créés, et ses identifiants partent par e-mail.</td></tr>
+          <tr><td>modifier un prix ou ajouter une pièce</td><td>Menu Tarifs. Chaque changement est une nouvelle version, avec motif.</td></tr>
+          <tr><td>changer un seuil (relances, alertes, TVA, plafonds)</td><td>Administration &gt; Paramètres. Motif obligatoire, historique conservé.</td></tr>
+          <tr><td>modifier les messages aux clients</td><td>Administration &gt; Messagerie.</td></tr>
+          <tr><td>régler qui est alerté, et quand</td><td>Administration &gt; Règles d'alerte.</td></tr>
+          <tr><td>autoriser un poste de réception hors-ligne</td><td>Administration &gt; Postes hors-ligne.</td></tr>
+          <tr><td>vérifier que le journal n'a pas été altéré</td><td>Administration &gt; Journal d'audit &gt; Vérifier la chaîne.</td></tr>
+          <tr><td>contrôler les sauvegardes</td><td>Administration &gt; Sauvegardes. Voir le guide d'exploitation pour la restauration.</td></tr>
+          <tr><td>changer d'agence de travail</td><td>Sélecteur d'agence dans la barre du haut.</td></tr>
+        </tbody></table></div>
+    </section>
+
+    <!-- ===== CLIENT ===== -->
+    <section id="client" class="role">
+      <div class="role-band"><h2>Le client</h2><span class="tag">sans compte, sans mot de passe</span></div>
+      <p class="lead" style="font-size:16px">Un client suit sa commande de deux façons. Montrez-lui celle qui lui convient au moment de lui remettre son ticket.</p>
+      <div class="specimens">
+        <div class="panel"><h3>Avec le ticket</h3>
+          <ol class="day" style="margin-top:12px">
+            <li><span><b>Scanner le QR code</b> imprimé sur le ticket : la page de sa commande s'ouvre directement.</span></li>
+            <li><span>Ou ouvrir le site du pressing : dès la page d'accueil, saisir le <b>numéro du ticket</b> (ou le code d'une étiquette) et le <b>téléphone</b> donné à l'agence.</span></li>
+          </ol>
+        </div>
+        <figure class="spec" style="margin:0">
+          <div class="paper" style="font-family:var(--font-body);font-size:13px">
+            <div class="mono" style="font-size:11px;color:#566C72">Garoua · PR-2026-000124</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px;margin-top:2px">Bonjour Aïcha,</div>
+            <div style="margin-top:2px">votre commande est en traitement. Prête <b>jeudi à 17 h</b>.</div>
+            <div class="track"><div class="done">Reçue</div><div class="cur">Traitement</div><div>Contrôle</div><div>Prête</div></div>
+            <div class="row" style="display:flex;justify-content:space-between"><span>Reste à payer</span><b class="mono">7 500 FCFA</b></div>
+          </div>
+          <figcaption>Ce que voit le client : l'avancement en quatre étapes, ses pièces, le reste à payer, l'historique de sa commande, et la demande de livraison à domicile. Exemple.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ===== COULEURS ===== -->
+    <section id="couleurs">
+      <div class="sec-head"><h2>Couleurs et alertes</h2><p>Les mêmes couleurs veulent dire la même chose partout.</p></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Signal</th><th>Sens</th><th>Ce que vous faites</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill p-ok">Vert</span></td><td>Dans les temps, conforme, payé.</td><td>Rien.</td></tr>
+          <tr><td><span class="pill p-warn">Orange</span></td><td>À risque : la date promise approche, une pièce attend, un seuil est proche.</td><td>Agir avant que ça devienne rouge.</td></tr>
+          <tr><td><span class="pill p-stop">Rouge</span></td><td>En retard, bloqué, écart de caisse, client injoignable.</td><td>Traiter maintenant ; prévenir le responsable.</td></tr>
+        </tbody></table></div>
+      <div class="tip"><b>Une alerte sans réponse monte d'un cran.</b> Pièce non prise en charge : superviseur, puis responsable. Écart de caisse : responsable, puis direction. Cliquez sur <b>Prendre en compte</b> pour dire que vous vous en occupez.</div>
+    </section>
+
+    <!-- ===== GLOSSAIRE ===== -->
+    <section id="glossaire">
+      <div class="sec-head"><h2>Mots du métier</h2></div>
+      <dl class="gl">
+        <dt>Acompte</dt><dd>Somme versée par le client au dépôt, déduite du total.</dd>
+        <dt>Avoir</dt><dd>Document qui réduit une facture. La facture elle-même n'est jamais modifiée.</dd>
+        <dt>Dérogation</dt><dd>Autorisation exceptionnelle d'un responsable (contrôle qualité, plafond d'encours), toujours motivée et tracée.</dd>
+        <dt>Encours</dt><dd>Ce qu'un client en compte doit : factures ouvertes et commandes pas encore facturées.</dd>
+        <dt>Fond de caisse</dt><dd>Espèces mises en caisse à l'ouverture, comptées et saisies.</dd>
+        <dt>NIU</dt><dd>Numéro d'identifiant unique du contribuable, imprimé sur les tickets et les factures.</dd>
+        <dt>Pièce</dt><dd>Un vêtement ou un article déposé. Une commande contient une ou plusieurs pièces, chacune avec son étiquette.</dd>
+        <dt>Plafond d'encours</dt><dd>Montant maximum que peut devoir un client en compte.</dd>
+        <dt>Reprise</dt><dd>Pièce renvoyée par le contrôle qualité vers une étape antérieure, avec un motif.</dd>
+        <dt>Report de solde</dt><dd>Livraison clôturée sans encaisser tout le solde, avec motif et accord d'un responsable.</dd>
+        <dt>Segment</dt><dd>Groupe de clients selon leur activité : nouveau, régulier, à risque, perdu, VIP…</dd>
+        <dt>TTC / HT / TVA</dt><dd>Tous les prix du comptoir sont TTC (TVA 19,25 % incluse). Les factures détaillent le HT, la TVA et le TTC.</dd>
+      </dl>
+    </section>
+
+    <!-- ===== DEPANNAGE ===== -->
+    <section id="depannage">
+      <div class="sec-head"><h2>Si ça bloque</h2><p>Le message d'erreur dit toujours ce qui manque. Voici les cas les plus fréquents.</p></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Ce que vous voyez</th><th>Ce qu'il faut faire</th></tr></thead>
+        <tbody>
+          <tr><td>« Photo obligatoire pour… »</td><td>Prenez la photo de la pièce concernée, puis validez à nouveau.</td></tr>
+          <tr><td>« Client non identifiable »</td><td>Complétez la fiche : prénom et nom, numéro valide.</td></tr>
+          <tr><td>« Ouvrez votre caisse avant d'encaisser »</td><td>Caisse &gt; Ouvrir ma caisse.</td></tr>
+          <tr><td>« Justification détaillée obligatoire »</td><td>Un écart existe à la clôture. Recomptez, puis expliquez en 8 caractères au moins.</td></tr>
+          <tr><td>« Contrôle qualité non validé »</td><td>La pièce doit passer par le contrôleur ; sinon demandez une dérogation à un responsable.</td></tr>
+          <tr><td>« Plafond d'encours dépassé »</td><td>La commande en compte est bloquée. Un responsable peut accorder une dérogation avec motif.</td></tr>
+          <tr><td>« Preuve de livraison obligatoire »</td><td>Faites donner le code au client, ou faites-le signer, ou prenez une photo.</td></tr>
+          <tr><td>« Accès refusé »</td><td>Votre rôle n'a pas ce droit. Demandez à votre responsable ; la tentative est notée.</td></tr>
+          <tr><td>Alerte « Messages en attente »</td><td>Le SMS ou WhatsApp n'est pas configuré : prévenir l'administrateur. Les e-mails partent normalement.</td></tr>
+          <tr><td>Le réseau est coupé à la réception</td><td>Utilisez le mode Hors-ligne, sans actualiser la page. Les commandes se synchronisent au retour du réseau.</td></tr>
+          <tr><td>Mot de passe oublié</td><td>Demandez une réinitialisation à l'administrateur : vous recevrez un mot de passe provisoire.</td></tr>
+        </tbody></table></div>
+      <div class="tip"><b>Qui prévenir ?</b> D'abord votre responsable d'agence, puis l'administrateur de la plateforme. Notez l'heure, la commande concernée et le message affiché : cela accélère la réponse.</div>
+    </section>
+
+    <footer>Guide d'utilisation de la plateforme Pressing. Les montants, noms et numéros des illustrations sont des exemples. Les droits décrits sont ceux de chaque rôle ; un menu absent de votre écran n'est pas accessible à votre rôle.</footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.side a[href^="#"]'));
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+  var secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  function mark() {
+    var y = window.scrollY + 110, cur = secs[0];
+    secs.forEach(function (s) { if (s.offsetTop <= y) cur = s; });
+    links.forEach(function (a) { a.removeAttribute('aria-current'); });
+    if (cur && map[cur.id]) { map[cur.id].setAttribute('aria-current', 'true'); }
+  }
+  window.addEventListener('scroll', mark, { passive: true });
+  mark();
+})();
+</script>
+
+</html>
