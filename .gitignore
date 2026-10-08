@@ -12,3 +12,6 @@ ops/.last-deploy
 tests/e2e/node_modules/
 tests/e2e/package*.json
 tests/e2e/shots/
+cookies.txt
+check-db.php
+E2E_TEST_COMPLETION.txt

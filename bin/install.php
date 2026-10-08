@@ -30,7 +30,16 @@ if ($demo && (string)Config::get('app.env') === 'production') {
     exit("Refus : --demo est interdit en production (APP_ENV=production). Utilisez APP_ENV=local.\n");
 }
 $pdo = Database::pdo();
-if (Database::all('SHOW TABLES')) {
+
+// Vérifier s'il y a déjà des tables (compatible MySQL et SQLite)
+$dsn = (string)Config::get('db.dsn');
+if (str_starts_with($dsn, 'sqlite:')) {
+    $existingTables = Database::value('SELECT COUNT(*) FROM sqlite_master WHERE type=?', ['table']) > 0;
+} else {
+    $existingTables = !empty(Database::all('SHOW TABLES'));
+}
+
+if ($existingTables) {
     exit("Refus : la base contient déjà des tables. Utilisez php bin/migrate.php pour la mettre à jour.\n");
 }
 

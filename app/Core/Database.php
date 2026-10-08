@@ -24,8 +24,14 @@ final class Database
                     PDO::ATTR_EMULATE_PREPARES   => true, // autorise la réutilisation d'un paramètre nommé
                 ]
             );
-            // Aligne le fuseau MySQL sur celui de PHP (NOW(), CURDATE())
-            self::$pdo->exec("SET NAMES utf8mb4, time_zone = '" . date('P') . "'");
+            // Aligne le fuseau MySQL sur celui de PHP (NOW(), CURDATE()) - SQL uniquement si MySQL
+            $dsn = (string)Config::get('db.dsn');
+            if (str_starts_with($dsn, 'mysql:')) {
+                self::$pdo->exec("SET NAMES utf8mb4, time_zone = '" . date('P') . "'");
+            } elseif (str_starts_with($dsn, 'sqlite:')) {
+                // SQLite : activer les clés étrangères
+                self::$pdo->exec('PRAGMA foreign_keys = ON');
+            }
         }
         return self::$pdo;
     }

@@ -12,7 +12,9 @@ final class Migrator
     public static function run(): array
     {
         $pdo = Database::pdo();
-        $pdo->exec('CREATE TABLE IF NOT EXISTS schema_migrations (name VARCHAR(100) PRIMARY KEY, applied_at DATETIME NOT NULL) ENGINE=InnoDB');
+        $dsn = (string)\App\Core\Config::get('db.dsn');
+        $engine = str_starts_with($dsn, 'sqlite:') ? '' : ' ENGINE=InnoDB';
+        $pdo->exec('CREATE TABLE IF NOT EXISTS schema_migrations (name VARCHAR(100) PRIMARY KEY, applied_at DATETIME NOT NULL)' . $engine);
         $done = array_column(Database::all('SELECT name FROM schema_migrations'), 'name');
 
         $files = glob(BASE_PATH . '/database/migrations/*.sql') ?: [];
@@ -24,7 +26,12 @@ final class Migrator
                 $out[] = "= $name (déjà appliquée)";
                 continue;
             }
-            foreach (self::statements((string)file_get_contents($file)) as $stmt) {
+            $sql = (string)file_get_contents($file);
+            // Adapter MySQL → SQLite si nécessaire
+            if (str_starts_with($dsn, 'sqlite:')) {
+                $sql = self::adaptSqlForSqlite($sql);
+            }
+            foreach (self::statements($sql) as $stmt) {
                 $pdo->exec($stmt);
             }
             Database::insert('schema_migrations', ['name' => $name, 'applied_at' => now()]);
@@ -55,7 +62,50 @@ final class Migrator
 
     public static function triggersInstalled(): bool
     {
+        $dsn = (string)\App\Core\Config::get('db.dsn');
+        if (str_starts_with($dsn, 'sqlite:')) {
+            // SQLite : pas de información_schema, vérifie via sqlite_master
+            return (int)Database::value('SELECT COUNT(*) FROM sqlite_master WHERE type = ? AND name LIKE ?', ['trigger', '%_no_%']) > 0;
+        }
+        // MySQL/MariaDB
         return (int)Database::value('SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME LIKE ?', ['%_no_%']) > 0;
+    }
+
+    /** Adapter le SQL MySQL pour SQLite : enlever les clauses MySQL-spécifiques */
+    private static function adaptSqlForSqlite(string $sql): string
+    {
+        // Remplacer ENGINE=InnoDB et charset/collate
+        $sql = (string)preg_replace('/\s*ENGINE\s*=\s*\w+/i', '', $sql);
+        $sql = (string)preg_replace('/\s*DEFAULT\s+CHARSET\s*=\s*\w+/i', '', $sql);
+        $sql = (string)preg_replace('/\s*COLLATE\s*=\s*[\w_]+/i', '', $sql);
+        
+        // Remplacer INT AUTO_INCREMENT PRIMARY KEY par INTEGER PRIMARY KEY AUTOINCREMENT
+        $sql = (string)preg_replace('/\bINT\s+AUTO_INCREMENT\s+PRIMARY\s+KEY\b/i', 'INTEGER PRIMARY KEY AUTOINCREMENT', $sql);
+        // Remplacer BIGINT AUTO_INCREMENT PRIMARY KEY par INTEGER PRIMARY KEY AUTOINCREMENT
+        $sql = (string)preg_replace('/\bBIGINT\s+AUTO_INCREMENT\s+PRIMARY\s+KEY\b/i', 'INTEGER PRIMARY KEY AUTOINCREMENT', $sql);
+        
+        // Remplacer TINYINT(1) par INTEGER
+        $sql = (string)preg_replace('/\bTINYINT\s*\(\s*1\s*\)/i', 'INTEGER', $sql);
+        
+        // Remplacer BIGINT par INTEGER
+        $sql = (string)preg_replace('/\bBIGINT\b/i', 'INTEGER', $sql);
+        
+        // Remplacer INT par INTEGER (après les remplacements ci-dessus)
+        $sql = (string)preg_replace('/\bINT\b(?!\s*[A-Za-z])/i', 'INTEGER', $sql);
+        
+        // Supprimer les INDEX KEY (pas les CONSTRAINT FK) : matcher les lignes KEY idx_... et UNIQUE KEY
+        // Cette regex enlève: ,\n  KEY idx_... ou ,\n  UNIQUE KEY
+        $sql = (string)preg_replace('/,\s*(?:UNIQUE\s+)?KEY\s+`?\w+`?\s*\([^)]+\)/im', '', $sql);
+        
+        // Enlever les clauses AFTER et BEFORE des ALTER TABLE (incompatibles SQLite)
+        $sql = (string)preg_replace('/\s+(AFTER|BEFORE)\s+`?\w+`?,?/im', ',', $sql);
+        
+        // Nettoyer les virgules en doublon à la fin des parenthèses et les espaces blancs excessifs
+        $sql = (string)preg_replace('/,\s*\)/m', ')', $sql);
+        $sql = (string)preg_replace('/,\s*;/m', ';', $sql);
+        $sql = (string)preg_replace('/\n\s*\n/m', "\n", $sql);
+        
+        return $sql;
     }
 
     /**
